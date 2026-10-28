@@ -1,5 +1,10 @@
 (() => {
-  if (typeof Chart === "undefined") return;
+  if (typeof Chart === "undefined") {
+    console.error(
+      "[MaintIQ] Chart.js did not load (/js/chart.umd.min.js). Dashboard and analytics charts were skipped."
+    );
+    return;
+  }
 
   Chart.defaults.color = "#9a9690";
   Chart.defaults.borderColor = "rgba(255,255,255,0.08)";
@@ -15,6 +20,15 @@
   const byId = (id) => document.getElementById(id);
   const dash = window.DASHBOARD_DATA || {};
   const analytics = window.ANALYTICS_DATA || null;
+
+  if (byId("healthDonut") && !dash.healthCounts) {
+    console.warn("[MaintIQ] DASHBOARD_DATA.healthCounts missing; donut may be empty.");
+  }
+  if (byId("analytics-filters") && !analytics) {
+    console.error(
+      "[MaintIQ] ANALYTICS_DATA missing (/js/analytics-data.js). Analytics charts and window table were skipped."
+    );
+  }
 
   const sampleSeries = (series, maxPoints = 48) => {
     if (!series?.length) return [];
