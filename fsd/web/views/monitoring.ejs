@@ -1,0 +1,142 @@
+<%- include('partials/app-open', { page: 'monitoring', title: 'Monitoring', heading: 'Monitoring', kicker: 'Condition monitoring', user }) %>
+
+<div class="page-head">
+  <div>
+    <h2>Monitoring runs</h2>
+    <p>Review completed analysis runs, track bearing condition scores, and inspect results across uploaded datasets.</p>
+  </div>
+</div>
+
+<section class="metric-grid">
+  <article class="card metric-card"><div class="label">Running</div><div class="value"><%= monitoringStats.running %></div></article>
+  <article class="card metric-card"><div class="label">Paused</div><div class="value"><%= monitoringStats.paused %></div></article>
+  <article class="card metric-card"><div class="label">Completed</div><div class="value"><%= monitoringStats.completed %></div><p class="muted metric-sub">Last update <%= monitoringStats.lastRunLabel %></p></article>
+  <article class="card metric-card"><div class="label">Failed</div><div class="value"><%= monitoringStats.failed %></div></article>
+</section>
+
+<div class="toolbar" id="runs-toolbar">
+  <input class="search" type="search" placeholder="Search machine, dataset or run ID" data-run-search />
+  <select class="select" data-run-filter="status">
+    <option value="">Status</option>
+    <% statuses.forEach(function (status) { %><option><%= status %></option><% }) %>
+  </select>
+  <select class="select" data-run-filter="year">
+    <option value="">Year</option>
+    <% monitoringStats.years.forEach(function (year) { %><option value="<%= year %>"><%= year %></option><% }) %>
+  </select>
+  <select class="select" data-run-sort>
+    <option value="updated">Sort by latest update</option>
+    <option value="name">Sort by machine</option>
+    <option value="progress">Sort by progress</option>
+  </select>
+</div>
+
+<div class="run-list" id="run-list">
+  <% if (!runs.length) { %>
+    <article class="card"><p class="muted">No historical scoring runs are loaded.</p></article>
+  <% } %>
+  <% runs.forEach(function (run) { %>
+    <article
+      class="card run-card"
+      data-search="<%= run.search %>"
+      data-status="<%= run.status %>"
+      data-machine="<%= run.name %>"
+      data-year="<%= run.year %>"
+      data-scope="<%= run.scope %>"
+      data-name="<%= run.name %>"
+      data-updated="<%= run.updatedIso %>"
+      data-progress="<%= run.progress == null ? '' : run.progress %>"
+      data-run="<%= run.id %>"
+      data-machine-id="<%= run.machineId %>"
+      data-asset="<%= run.assetId %>"
+      data-dataset="<%= run.dataset %>"
+      data-stage="<%= run.stage %>"
+      data-window="<%= run.windowLabel %>"
+      data-windows="<%= run.nWindows == null ? '' : run.nWindows %>"
+      data-bins="<%= run.nBins == null ? '' : run.nBins %>"
+      data-period="<%= run.periodLabel %>"
+      data-test="<%= run.testId || '' %>"
+      data-damage="<%= run.documentedDamage || '' %>"
+      data-anomaly="<%= run.anomalyScore || '' %>"
+      data-rms="<%= run.rms || '' %>"
+      data-fail="<%= run.failProb || '' %>"
+      data-rul="<%= run.rulHours == null ? '' : run.rulHours %>"
+      data-health="<%= run.health || '' %>"
+      data-error="<%= run.error %>"
+    >
+      <div class="run-card-head">
+        <div class="run-identity">
+          <span class="run-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          </span>
+          <div>
+            <h3><%= run.name %></h3>
+            <p class="muted"><%= run.assetId %> · <%= run.id %> · <%= run.dataset %></p>
+          </div>
+        </div>
+        <span class="badge badge-<%= run.statusClass %>"><%= run.status %></span>
+      </div>
+      <div class="run-stage">
+        <div class="run-stage-top">
+          <div>
+            <strong><%= run.stage %></strong>
+            <p class="muted"><%= run.windowLabel %></p>
+          </div>
+          <span class="run-pct"><%= run.progress == null ? "—" : run.progress + "%" %></span>
+        </div>
+        <div class="progress"><span style="width:<%= run.progress == null ? 0 : run.progress %>%"></span></div>
+      </div>
+      <div class="run-card-foot">
+        <p class="muted">Scored <%= run.periodLabel %> · Updated <%= run.updated %></p>
+        <div class="btn-row">
+          <button class="btn" type="button" data-inspect-run>Inspect</button>
+          <div class="menu">
+            <button class="btn btn-icon menu-trigger" type="button" aria-label="More"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
+            <div class="menu-panel" hidden>
+              <a class="menu-item" href="/machines/<%= run.machineId %>">View machine</a>
+              <a class="menu-item" href="/analytics?machine=<%= encodeURIComponent(run.machineId) %>">Open analytics</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  <% }) %>
+</div>
+
+<aside class="drawer drawer-peek" id="run-inspect">
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <div>
+        <h3 id="inspect-title">Run details</h3>
+        <p class="muted" id="inspect-sub">—</p>
+      </div>
+      <button class="btn btn-icon" type="button" data-close aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body">
+      <h4 class="drawer-section">Dataset metadata</h4>
+      <dl class="detail-list" id="inspect-meta"></dl>
+
+      <h4 class="drawer-section">Processing stages</h4>
+      <ol class="stage-list" id="inspect-stages"></ol>
+
+      <h4 class="drawer-section">Timestamps</h4>
+      <dl class="detail-list" id="inspect-times"></dl>
+
+      <h4 class="drawer-section">Logs</h4>
+      <pre class="log-block" id="inspect-logs"></pre>
+
+      <h4 class="drawer-section">Errors</h4>
+      <p class="muted" id="inspect-errors">None</p>
+
+      <h4 class="drawer-section">Model outputs</h4>
+      <dl class="detail-list" id="inspect-outputs"></dl>
+    </div>
+    <div class="drawer-foot btn-row">
+      <a class="btn btn-primary" id="inspect-analytics-link" href="/analytics">Open analytics</a>
+    </div>
+  </div>
+</aside>
+
+<%- include('partials/app-close') %>

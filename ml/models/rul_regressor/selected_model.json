@@ -1,0 +1,36 @@
+{
+  "model_path": "models/rul_regressor/xgboost_rul_regressor.joblib",
+  "feature_columns_path": "models/rul_regressor/feature_columns.json",
+  "target": "time_to_operational_endpoint_hours",
+  "target_transform": "log1p / expm1",
+  "unit": "hours",
+  "best_trial": {
+    "trial": 1,
+    "params": {
+      "max_depth": 2,
+      "min_child_weight": 10,
+      "learning_rate": 0.03,
+      "reg_lambda": 3.0,
+      "reg_alpha": 0.2,
+      "subsample": 0.8,
+      "colsample_bytree": 0.7
+    },
+    "val_mae_hours": 208.32831372771767,
+    "val_mae_last_72h": 18.147807536113103,
+    "val_mae_last_24h": 16.73913483161015,
+    "val_rmse_hours": 292.2111607146973,
+    "val_r2": -0.5475726342441045,
+    "selection_mae_hours": 18.147807536113103,
+    "best_iteration": 452
+  },
+  "train_mean_baseline_hours": 243.73010948129252,
+  "verification": {
+    "val_last72_beats_mean_baseline": true,
+    "test_last72_beats_mean_baseline": true,
+    "val_last72_mae_under_40h": true,
+    "test_last72_mae_under_80h": true,
+    "test_last24_mae_under_20h": true,
+    "all_trajectories_reported": true,
+    "all_critical_passed": true
+  }
+}

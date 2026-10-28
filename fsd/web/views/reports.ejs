@@ -1,0 +1,117 @@
+<%- include('partials/app-open', { page: 'reports', title: 'Reports', heading: 'Reports', kicker: 'Maintenance reports', user }) %>
+
+<div class="page-head">
+  <div>
+    <h2>Generated reports</h2>
+    <p>Generate structured machine condition reports from stored records and download them as PDFs for documentation and review.</p>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" type="button" data-open="#generate-report">+ Generate Report</button>
+  </div>
+</div>
+
+<% if (typeof notice !== "undefined" && notice) { %>
+  <p class="settings-flash is-ok"><%= notice %></p>
+<% } %>
+<% if (typeof error !== "undefined" && error) { %>
+  <p class="settings-flash is-error"><%= error %></p>
+<% } %>
+
+<section class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Report name</th>
+          <th>Machine</th>
+          <th>Type</th>
+          <th>Period</th>
+          <th>Dataset / run</th>
+          <th>Created by</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!reports.length) { %>
+          <tr>
+            <td colspan="7" class="muted">No reports yet. Generate one from a registered machine.</td>
+          </tr>
+        <% } %>
+        <% reports.forEach(function (row) { %>
+          <tr>
+            <td><%= row.name %></td>
+            <td>
+              <div class="cell-stack">
+                <strong><%= row.machineName %></strong>
+                <span class="muted"><%= row.assetId %></span>
+              </div>
+            </td>
+            <td><%= row.type %></td>
+            <td><%= row.period %></td>
+            <td>
+              <div class="cell-stack">
+                <span><%= row.datasetId %></span>
+                <span class="muted"><%= row.runId %></span>
+              </div>
+            </td>
+            <td><%= row.createdBy %></td>
+            <td>
+              <div class="menu">
+                <button class="btn btn-icon menu-trigger" type="button" aria-label="Actions" aria-expanded="false">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+                </button>
+                <div class="menu-panel" hidden>
+                  <a class="menu-item" href="/reports/preview?id=<%= row.id %>">View</a>
+                  <a class="menu-item" href="/reports/pdf?id=<%= row.id %>">Download PDF</a>
+                  <form method="post" action="/reports/<%= row.id %>/delete">
+                    <%- include('partials/csrf') %>
+                    <button class="menu-item" type="submit">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="overlay<%= typeof error !== 'undefined' && error ? ' is-open' : '' %>" data-close></div>
+<div class="modal<%= typeof error !== 'undefined' && error ? ' is-open' : '' %>" id="generate-report">
+  <h3>Generate report</h3>
+  <form class="form-grid" method="post" action="/reports/generate" id="generate-report-form">
+    <%- include('partials/csrf') %>
+    <label>Machine
+      <select name="machineId" id="report-machine" required>
+        <option value="" disabled <%= selectedMachine ? "" : "selected" %>>Select a machine</option>
+        <% machines.forEach(function (machine) { %>
+          <option
+            value="<%= machine.id %>"
+            data-name="<%= machine.name %>"
+            data-asset="<%= machine.assetId %>"
+            <%= selectedMachine === machine.id ? "selected" : "" %>
+          ><%= machine.name %> (<%= machine.assetId %>)</option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Report title
+      <input
+        name="title"
+        id="report-title"
+        type="text"
+        required
+        maxlength="120"
+        value="<%= reportTitle || "" %>"
+        placeholder="e.g. IMS Bearing 3 health assessment"
+      />
+    </label>
+    <p class="muted">The report uses only stored records for the selected machine. Sections with no data are left out.</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" type="submit">Generate</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+    </div>
+  </form>
+</div>
+
+<%- include('partials/app-close') %>

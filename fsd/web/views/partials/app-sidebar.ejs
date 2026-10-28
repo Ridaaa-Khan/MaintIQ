@@ -1,0 +1,79 @@
+<aside class="sidebar" aria-label="Application">
+  <div class="sidebar-header">
+    <a class="sidebar-brand" href="/dashboard">
+      <span class="sidebar-brand-mark" aria-hidden="true"></span>
+      <span class="sidebar-brand-name">MaintIQ</span>
+    </a>
+  </div>
+
+  <nav class="sidebar-content">
+    <p class="sidebar-group-label">Overview</p>
+    <div class="sidebar-menu">
+      <a class="sidebar-item <%= page === 'dashboard' ? 'is-active' : '' %>" href="/dashboard">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span class="sidebar-label">Dashboard</span>
+      </a>
+      <a class="sidebar-item <%= page === 'machines' ? 'is-active' : '' %>" href="/machines">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="sidebar-label">Machines</span>
+      </a>
+      <a class="sidebar-item <%= page === 'monitoring' ? 'is-active' : '' %>" href="/monitoring">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+        <span class="sidebar-label">Monitoring</span>
+      </a>
+    </div>
+
+    <p class="sidebar-group-label">Intelligence</p>
+    <div class="sidebar-menu">
+      <a class="sidebar-item <%= page === 'alerts' ? 'is-active' : '' %>" href="/alerts">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg>
+        <span class="sidebar-label">Alerts</span>
+        <span class="sidebar-badge"><%= typeof alertCount !== 'undefined' ? alertCount : 0 %></span>
+      </a>
+      <a class="sidebar-item <%= page === 'analytics' ? 'is-active' : '' %>" href="/analytics">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+        <span class="sidebar-label">Analytics</span>
+      </a>
+    </div>
+
+    <p class="sidebar-group-label">Workspace</p>
+    <div class="sidebar-menu">
+      <a class="sidebar-item <%= page === 'reports' ? 'is-active' : '' %>" href="/reports">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+        <span class="sidebar-label">Reports</span>
+      </a>
+      <% const settingsOpen = page === 'settings'; const settingsTab = typeof settingsSection !== 'undefined' ? settingsSection : 'profile'; %>
+      <div class="sidebar-dropdown <%= settingsOpen ? 'is-open' : '' %>">
+        <button
+          class="sidebar-item <%= settingsOpen ? 'is-active' : '' %>"
+          type="button"
+          data-sidebar-dropdown
+          aria-expanded="<%= settingsOpen ? 'true' : 'false' %>"
+        >
+          <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M4 12h2M18 12h2M12 4v2M12 18v2"/></svg>
+          <span class="sidebar-label">Settings</span>
+          <svg class="sidebar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="sidebar-submenu" <%= settingsOpen ? '' : 'hidden' %>>
+          <a class="sidebar-subitem <%= settingsOpen && settingsTab === 'profile' ? 'is-active' : '' %>" href="/settings">Profile</a>
+          <a class="sidebar-subitem <%= settingsOpen && settingsTab === 'password' ? 'is-active' : '' %>" href="/settings?section=password">Update Password</a>
+          <form action="/signout" method="post">
+            <%- include('csrf') %>
+            <button class="sidebar-subitem sidebar-logout" type="submit">Log out</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar" data-sidebar-avatar data-user-id="<%= user.id %>"><%= (user.first_name || "U").charAt(0) %><%= (user.last_name || "").charAt(0) %></div>
+      <div class="sidebar-user-meta">
+        <strong><%= user.first_name %> <%= user.last_name %></strong>
+        <span><%= user.email %></span>
+      </div>
+    </div>
+  </div>
+  <button class="sidebar-rail" type="button" data-sidebar-toggle aria-label="Resize sidebar"></button>
+</aside>

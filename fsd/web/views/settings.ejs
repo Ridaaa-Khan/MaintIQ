@@ -1,0 +1,192 @@
+<%
+  const section = typeof settingsSection !== "undefined" ? settingsSection : "profile";
+  const isEditing = Boolean(typeof editProfile !== "undefined" && editProfile);
+  const profileErrors = Array.isArray(typeof errors !== "undefined" ? errors : null) ? errors : [];
+  const pwdErrors = Array.isArray(typeof passwordErrors !== "undefined" ? passwordErrors : null) ? passwordErrors : [];
+  const passwordOk = Boolean(typeof passwordSuccess !== "undefined" && passwordSuccess);
+  const profileOk = Boolean(typeof profileSuccess !== "undefined" && profileSuccess);
+  const createdLabel = user.created_at
+    ? new Date(user.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+    : "—";
+%>
+<%- include('partials/app-open', {
+  page: 'settings',
+  title: section === 'password' ? 'Update Password' : 'Profile',
+  heading: section === 'password' ? 'Update Password' : 'Profile',
+  kicker: 'Settings',
+  user,
+  settingsSection: section
+}) %>
+
+<% if (section === "profile") { %>
+  <div class="page-head">
+    <div>
+      <h2><%= isEditing ? "Edit profile" : "Profile" %></h2>
+      <p><%= isEditing ? "Update your account details and photo." : "Your account information for this workspace." %></p>
+    </div>
+    <% if (!isEditing) { %>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="/settings?edit=1">Edit Profile</a>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (profileOk) { %>
+    <p class="settings-flash is-ok">Profile updated.</p>
+  <% } %>
+  <% if (profileErrors.length) { %>
+    <ul class="settings-flash is-error">
+      <% profileErrors.forEach(function (msg) { %>
+        <li><%= msg %></li>
+      <% }) %>
+    </ul>
+  <% } %>
+
+  <% if (!isEditing) { %>
+    <div class="settings-edit-layout">
+      <aside class="card settings-identity-card">
+        <div class="profile-photo is-lg" data-avatar-slot data-user-id="<%= user.id %>">
+          <span data-avatar-initials><%= (user.first_name || "U").charAt(0) %><%= (user.last_name || "").charAt(0) %></span>
+        </div>
+        <strong class="settings-name"><%= user.first_name %> <%= user.last_name %></strong>
+        <p class="muted settings-identity-email"><%= user.email %></p>
+        <span class="badge badge-active">Member</span>
+      </aside>
+
+      <section class="card settings-info-card">
+        <div class="settings-info-head">
+          <h3 class="card-title">Personal information</h3>
+          <p class="muted">Your account details for this workspace.</p>
+        </div>
+        <dl class="settings-dl">
+          <div>
+            <dt>First name</dt>
+            <dd><%= user.first_name %></dd>
+          </div>
+          <div>
+            <dt>Last name</dt>
+            <dd><%= user.last_name %></dd>
+          </div>
+          <div>
+            <dt>Email address</dt>
+            <dd><%= user.email %></dd>
+          </div>
+          <div>
+            <dt>Phone number</dt>
+            <dd><%= user.phone || "—" %></dd>
+          </div>
+          <div>
+            <dt>Account created</dt>
+            <dd><%= createdLabel %></dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  <% } else { %>
+    <form method="post" action="/settings/profile" id="profile-edit-form" class="settings-edit-layout">
+      <%- include('partials/csrf') %>
+      <aside class="card settings-identity-card">
+        <div class="profile-photo-edit" data-avatar-controls data-user-id="<%= user.id %>">
+          <div class="profile-photo is-lg" data-avatar-slot data-user-id="<%= user.id %>">
+            <span data-avatar-initials><%= (user.first_name || "U").charAt(0) %><%= (user.last_name || "").charAt(0) %></span>
+          </div>
+          <button
+            class="profile-photo-edit-btn"
+            type="button"
+            data-avatar-menu-toggle
+            aria-label="Edit profile photo"
+            aria-expanded="false"
+            aria-haspopup="true"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z" />
+            </svg>
+          </button>
+          <div class="profile-photo-menu" data-avatar-menu>
+            <label class="menu-item" for="profile-photo-input" data-avatar-upload-label>Upload photo</label>
+            <label class="menu-item" for="profile-photo-input" data-avatar-change-label style="display:none">Change profile picture</label>
+            <button class="menu-item" type="button" data-avatar-delete data-user-id="<%= user.id %>" style="display:none">Delete profile picture</button>
+          </div>
+          <input id="profile-photo-input" class="sr-only" type="file" accept="image/png,image/jpeg" data-avatar-input data-user-id="<%= user.id %>" />
+        </div>
+        <strong class="settings-name"><%= user.first_name %> <%= user.last_name %></strong>
+        <p class="muted settings-identity-email"><%= user.email %></p>
+        <span class="badge badge-active">Member</span>
+      </aside>
+
+      <section class="card settings-info-card">
+        <div class="settings-info-head">
+          <h3 class="card-title">Personal information</h3>
+          <p class="muted">Update your personal details below.</p>
+        </div>
+        <div class="form-grid two">
+          <label>First name
+            <input name="firstName" maxlength="50" value="<%= user.first_name %>" required />
+          </label>
+          <label>Last name
+            <input name="lastName" maxlength="50" value="<%= user.last_name %>" required />
+          </label>
+          <label>Email address
+            <input type="email" name="email" maxlength="255" value="<%= user.email %>" required />
+          </label>
+          <label>Phone number
+            <input type="tel" name="phone" maxlength="10" inputmode="numeric" value="<%= user.phone || '' %>" placeholder="Enter phone number" />
+          </label>
+        </div>
+        <div class="btn-row settings-info-actions">
+          <a class="btn" href="/settings">Cancel</a>
+          <button class="btn btn-primary" type="submit">Save changes</button>
+        </div>
+      </section>
+    </form>
+  <% } %>
+<% } else { %>
+  <div class="page-head">
+    <div>
+      <h2>Update Password</h2>
+      <p>Change the password for this MaintIQ account.</p>
+    </div>
+  </div>
+
+  <% if (passwordOk) { %>
+    <p class="settings-flash is-ok">Password updated.</p>
+  <% } %>
+
+  <section class="card">
+    <% if (pwdErrors.length) { %>
+      <ul class="settings-flash is-error">
+        <% pwdErrors.forEach(function (msg) { %>
+          <li><%= msg %></li>
+        <% }) %>
+      </ul>
+    <% } %>
+    <form class="form-grid" method="post" action="/settings/password" autocomplete="off">
+      <%- include('partials/csrf') %>
+      <label>Current password
+        <input type="password" name="currentPassword" autocomplete="current-password" required />
+      </label>
+      <label>New password
+        <input type="password" name="newPassword" autocomplete="new-password" required />
+      </label>
+      <label>Confirm new password
+        <input type="password" name="confirmPassword" autocomplete="new-password" required />
+      </label>
+      <div class="password-rules">
+        <p class="password-rules-title">New password must include:</p>
+        <ul>
+          <li>More than 8 characters</li>
+          <li>At least one uppercase letter</li>
+          <li>At least one lowercase letter</li>
+          <li>At least one digit</li>
+          <li>At least one special character</li>
+        </ul>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Update Password</button>
+      </div>
+    </form>
+  </section>
+<% } %>
+
+<%- include('partials/app-close') %>

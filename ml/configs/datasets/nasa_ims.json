@@ -1,0 +1,100 @@
+{
+  "dataset_id": "nasa_ims",
+  "name": "NASA / University of Cincinnati IMS Bearing Dataset",
+  "description": "Run-to-failure accelerometer recordings from four Rexnord ZA-2115 bearings on a shared shaft.",
+  "raw_root": "data/raw/IMS",
+  "acquisition": {
+    "sampling_rate_hz": 20000,
+    "signal_length": 20480,
+    "timestamp_pattern": "^\\d{4}\\.\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{2}$",
+    "provenance": "dataset_documentation",
+    "note": "Official IMS sampling rate is 20 kHz. Each snapshot is 20,480 samples (1.024 s). Some papers cite 20,480 Hz; that is treated as incorrect here."
+  },
+  "bearing": {
+    "model": "Rexnord ZA-2115",
+    "rpm": 2000,
+    "number_of_rolling_elements": 16,
+    "pitch_diameter_mm": 71.5,
+    "rolling_element_diameter_mm": 8.4,
+    "contact_angle_degrees": 15.17,
+    "provenance": "dataset_documentation",
+    "note": "Geometry and 2000 RPM shaft speed come from the IMS readme. Characteristic frequencies (FTF/BPFO/BPFI/BSF) are computed from these inputs, not measured from the waveform."
+  },
+  "envelope_band": {
+    "low_hz": 1000,
+    "high_hz": 3000,
+    "filter_order": 4,
+    "provenance": "engineering_choice",
+    "note": "1-3 kHz resonance band selected from envelope experiments on inner-race and outer-race late-life files. Not a dataset specification."
+  },
+  "channel_map": {
+    "1st_test": {
+      "1": [0, 1],
+      "2": [2, 3],
+      "3": [4, 5],
+      "4": [6, 7]
+    },
+    "2nd_test": {
+      "1": [0],
+      "2": [1],
+      "3": [2],
+      "4": [3]
+    },
+    "3rd_test": {
+      "1": [0],
+      "2": [1],
+      "3": [2],
+      "4": [3]
+    }
+  },
+  "channel_map_provenance": "dataset_documentation",
+  "failed_bearings": {
+    "1st_test": [3, 4],
+    "2nd_test": [1],
+    "3rd_test": [3]
+  },
+  "failed_bearings_note": "Documented IMS damage: T1-B3 inner race, T1-B4 rolling element, T2-B1 outer race, T3-B3 outer race.",
+  "trajectory_split": {
+    "train": [
+      ["1st_test", 1],
+      ["1st_test", 2],
+      ["1st_test", 3],
+      ["2nd_test", 1],
+      ["2nd_test", 2],
+      ["2nd_test", 3],
+      ["3rd_test", 1],
+      ["3rd_test", 2]
+    ],
+    "val": [
+      ["1st_test", 4],
+      ["2nd_test", 4]
+    ],
+    "test": [
+      ["3rd_test", 3],
+      ["3rd_test", 4]
+    ]
+  },
+  "trajectory_split_provenance": "engineering_choice",
+  "trajectory_split_note": "Split by (test_id, bearing_id), never by shuffled rows. Train includes two documented failures (T1-B3 inner race and T2-B1 outer race) so supervised models see more than one fault type. Val keeps T1-B4 (roller). Test holds out Test 3 (T3-B3 outer race + T3-B4 healthy). Selection/calibration use validation only; test is reporting-only.",
+  "targets": {
+    "artifact_rms_threshold": 0.01,
+    "failure_horizon_hours": 24.0,
+    "normal_baseline_fraction": 0.2,
+    "provenance": "engineering_choice",
+    "note": "Artifact threshold flags near-zero Test 2/3 shutdown files. RUL endpoint is last non-artifact timestamp on documented failed bearings (IMS has no exact physical failure time). Isolation Forest baseline is the first 20% of operational rows per trajectory."
+  },
+  "temporal": {
+    "gap_threshold_hours": 2.0,
+    "provenance": "engineering_choice",
+    "note": "Normal cadence is ~10 min. Test 1 has pauses up to ~148 h. Deltas/rates after gaps > 2 h are zeroed."
+  },
+  "column_roles": {
+    "metadata": ["test_id", "bearing_id", "timestamp", "source_file"],
+    "targets": [
+      "is_artifact",
+      "time_to_operational_endpoint_hours",
+      "failure_within_24h",
+      "isolation_forest_train"
+    ]
+  }
+}

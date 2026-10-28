@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in — MaintIQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/auth.css?v=6" />
+  </head>
+  <body class="auth-page">
+    <div class="auth-bg" aria-hidden="true"></div>
+    <div class="auth-bg-veil" aria-hidden="true"></div>
+
+    <a class="auth-brand" href="/">
+      <span class="auth-brand-mark" aria-hidden="true"></span>
+      MaintIQ
+    </a>
+
+    <main class="auth-shell">
+      <div class="auth-card">
+        <h1 class="auth-title">Sign in</h1>
+        <p class="auth-switch auth-switch--top">
+          New user?
+          <a href="/signup">Create an account</a>
+        </p>
+
+        <% if (error) { %>
+          <p class="auth-errors auth-errors--single"><%= error %></p>
+        <% } %>
+
+        <form class="auth-form" action="/signin" method="post" novalidate>
+          <label class="auth-field">
+            <span class="auth-label">Email ID</span>
+            <input
+              class="auth-input"
+              type="email"
+              name="email"
+              autocomplete="email"
+              placeholder="you@company.com"
+              value="<%= values.email || '' %>"
+              required
+            />
+          </label>
+
+          <label class="auth-field">
+            <span class="auth-label">Password</span>
+            <input
+              class="auth-input"
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="Enter your password"
+              required
+            />
+          </label>
+
+          <button class="auth-submit" type="submit">Sign in</button>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>

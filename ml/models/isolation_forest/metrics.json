@@ -1,0 +1,140 @@
+[
+  {
+    "split": "train",
+    "contamination": "auto",
+    "metric_interpretation": "Proxy alignment with failure_within_24h; not ground-truth anomaly-detection accuracy.",
+    "eligible_rows": 21398,
+    "positive_rows": 184,
+    "negative_rows": 21214,
+    "flagged_rows": 4254,
+    "flag_rate_all_rows": 0.1928377153218495,
+    "precision": 0.05020463847203274,
+    "recall": 1.0,
+    "f1": 0.09560924915562484,
+    "roc_auc": 0.9826405398813745,
+    "average_precision": 0.2052573318289838,
+    "confusion_matrix_tn_fp_fn_tp": [
+      17733,
+      3481,
+      0,
+      184
+    ],
+    "flagged_rows_eligible": 3665,
+    "accuracy": 0.837321244976166
+  },
+  {
+    "split": "val",
+    "contamination": "auto",
+    "metric_interpretation": "Proxy alignment with failure_within_24h; not ground-truth anomaly-detection accuracy.",
+    "eligible_rows": 2992,
+    "positive_rows": 39,
+    "negative_rows": 2953,
+    "flagged_rows": 1363,
+    "flag_rate_all_rows": 0.434353091140854,
+    "precision": 0.029500756429652043,
+    "recall": 1.0,
+    "f1": 0.05731080088170463,
+    "roc_auc": 0.8645618970712097,
+    "average_precision": 0.043175361879907975,
+    "confusion_matrix_tn_fp_fn_tp": [
+      1670,
+      1283,
+      0,
+      39
+    ],
+    "flagged_rows_eligible": 1322,
+    "accuracy": 0.5711898395721925
+  },
+  {
+    "split": "test",
+    "contamination": "auto",
+    "metric_interpretation": "Proxy alignment with failure_within_24h; not ground-truth anomaly-detection accuracy.",
+    "eligible_rows": 12500,
+    "positive_rows": 145,
+    "negative_rows": 12355,
+    "flagged_rows": 807,
+    "flag_rate_all_rows": 0.06381464494701881,
+    "precision": 0.21936459909228442,
+    "recall": 1.0,
+    "f1": 0.3598014888337469,
+    "roc_auc": 0.9999743228345358,
+    "average_precision": 0.9977884710025545,
+    "confusion_matrix_tn_fp_fn_tp": [
+      11839,
+      516,
+      0,
+      145
+    ],
+    "flagged_rows_eligible": 661,
+    "accuracy": 0.95872
+  },
+  {
+    "split": "train",
+    "contamination": "1pct",
+    "metric_interpretation": "Proxy alignment with failure_within_24h; not ground-truth anomaly-detection accuracy.",
+    "eligible_rows": 21398,
+    "positive_rows": 184,
+    "negative_rows": 21214,
+    "flagged_rows": 602,
+    "flag_rate_all_rows": 0.02728921124206709,
+    "precision": 0.22023809523809523,
+    "recall": 0.6032608695652174,
+    "f1": 0.3226744186046512,
+    "roc_auc": 0.9826405398813745,
+    "average_precision": 0.2052573318289838,
+    "confusion_matrix_tn_fp_fn_tp": [
+      20821,
+      393,
+      73,
+      111
+    ],
+    "flagged_rows_eligible": 504,
+    "accuracy": 0.9782222637629685
+  },
+  {
+    "split": "val",
+    "contamination": "1pct",
+    "metric_interpretation": "Proxy alignment with failure_within_24h; not ground-truth anomaly-detection accuracy.",
+    "eligible_rows": 2992,
+    "positive_rows": 39,
+    "negative_rows": 2953,
+    "flagged_rows": 724,
+    "flag_rate_all_rows": 0.2307202039515615,
+    "precision": 0.05454545454545454,
+    "recall": 1.0,
+    "f1": 0.10344827586206896,
+    "roc_auc": 0.8645618970712097,
+    "average_precision": 0.043175361879907975,
+    "confusion_matrix_tn_fp_fn_tp": [
+      2277,
+      676,
+      0,
+      39
+    ],
+    "flagged_rows_eligible": 715,
+    "accuracy": 0.7740641711229946
+  },
+  {
+    "split": "test",
+    "contamination": "1pct",
+    "metric_interpretation": "Proxy alignment with failure_within_24h; not ground-truth anomaly-detection accuracy.",
+    "eligible_rows": 12500,
+    "positive_rows": 145,
+    "negative_rows": 12355,
+    "flagged_rows": 158,
+    "flag_rate_all_rows": 0.012494069270915705,
+    "precision": 1.0,
+    "recall": 0.8344827586206897,
+    "f1": 0.9097744360902256,
+    "roc_auc": 0.9999743228345358,
+    "average_precision": 0.9977884710025545,
+    "confusion_matrix_tn_fp_fn_tp": [
+      12355,
+      0,
+      24,
+      121
+    ],
+    "flagged_rows_eligible": 121,
+    "accuracy": 0.99808
+  }
+]

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= report.name %> — <%= report.id.toUpperCase() %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/report.css?v=4" />
+  </head>
+  <body class="report-body<%= typeof exportPdf !== 'undefined' && exportPdf ? ' is-pdf' : '' %>">
+    <article class="report-sheet">
+      <section class="report-page report-page-cover">
+        <header class="report-masthead">
+          <div class="report-brand">
+            <span class="report-brand-mark" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <rect x="4" y="4" width="16" height="16" rx="4" stroke="#d7f3f1" stroke-width="1.6"/>
+                <path d="M7 14.5c1.2-3 2.2-4.6 3.2-4.6 1.4 0 1.6 4 3.1 4s1.8-3.2 3.7-3.2" stroke="#d7f3f1" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </span>
+            MaintIQ
+          </div>
+          <div class="report-kicker">Technical condition report</div>
+        </header>
+
+        <h1 class="report-h1"><%= report.name %></h1>
+        <p class="report-sub"><%= report.machine.name %> · <%= report.machine.assetId %></p>
+
+        <dl class="report-meta">
+          <% if (report.machine.periodLabel) { %>
+          <div>
+            <dt>Report period</dt>
+            <dd><%= report.machine.periodLabel %></dd>
+          </div>
+          <% } %>
+          <div>
+            <dt>Report type</dt>
+            <dd><%= report.type %></dd>
+          </div>
+          <% if (report.machine.dataSource) { %>
+          <div>
+            <dt>Data source</dt>
+            <dd><%= report.machine.dataSource %></dd>
+          </div>
+          <% } %>
+          <div>
+            <dt>Report ID</dt>
+            <dd><%= report.id.toUpperCase() %></dd>
+          </div>
+        </dl>
+        <hr class="report-rule" />
+
+        <h2 class="report-h2"><%= report.sections.summary %>. Executive summary</h2>
+        <p><%= report.narrative.execSummary %></p>
+
+        <% if (report.sections.findings) { %>
+        <h2 class="report-h2"><%= report.sections.findings %>. Key findings</h2>
+        <div class="report-findings">
+          <% if (report.findings.peakAnomalyLabel) { %>
+          <div><span>Highest anomaly score</span><strong><%= report.findings.peakAnomalyLabel %></strong></div>
+          <% } %>
+          <% if (report.findings.flaggedIfCount != null && report.findings.seriesCount) { %>
+          <div><span>Isolation Forest flags</span><strong><%= report.findings.flaggedIfCount %> / <%= report.findings.seriesCount %></strong></div>
+          <% } %>
+          <% if (report.findings.peakFailLabel) { %>
+          <div><span>Failure probability peak</span><strong><%= report.findings.peakFailLabel %></strong></div>
+          <% } %>
+          <% if (report.findings.rulLabel) { %>
+          <div>
+            <span>RUL estimate</span>
+            <strong class="is-exp"><%= report.findings.rulLabel %></strong>
+          </div>
+          <% } %>
+          <% if (report.machine.health && report.machine.health !== 'Unknown') { %>
+          <div><span>Stored condition</span><strong><%= report.machine.health %></strong></div>
+          <% } %>
+        </div>
+        <p class="report-note">Values below are retrieved from stored records for this machine. Isolation Forest flags mean a window looks unlike the early-life baseline, not that a fault is confirmed. RUL is experimental. Empty fields are omitted rather than estimated.</p>
+        <% } %>
+        <footer class="report-foot">
+          <span>MaintIQ · <%= report.machine.assetId %></span>
+          <span><%= report.generatedAtLabel %></span>
+        </footer>
+      </section>
+
+      <section class="report-page">
+        <header class="report-masthead is-inner">
+          <div class="report-brand">MaintIQ</div>
+          <div class="report-kicker"><%= report.id.toUpperCase() %> · <%= report.machine.assetId %></div>
+        </header>
+
+        <h2 class="report-h2"><%= report.sections.overview %>. Machine overview</h2>
+        <table class="report-table report-kv report-avoid">
+          <tbody>
+            <% report.overviewRows.forEach(function (row) { %>
+              <tr><th><%= row.label %></th><td><%= row.value %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+
+        <% if (report.sections.sensors) { %>
+        <h2 class="report-h2"><%= report.sections.sensors %>. Condition and sensor data</h2>
+        <% if (report.narrative.vibrationInterp) { %>
+        <p><%= report.narrative.vibrationInterp %></p>
+        <% } %>
+        <% if (report.sensorLatest.length) { %>
+        <table class="report-table report-kv report-avoid">
+          <tbody>
+            <% report.sensorLatest.forEach(function (row) { %>
+              <tr><th><%= row.label %></th><td><%= row.value %><% if (row.at) { %> · <%= row.at %><% } %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+        <% if (report.figures.rms) { %>
+        <figure class="report-figure">
+          <h3>Figure <%= report.figures.rms %>. RMS and peak vibration (12-hour means)</h3>
+          <div class="chart-frame"><canvas id="reportRmsChart"></canvas></div>
+          <p class="report-caption">Y-axis: acceleration in g. Points are processed snapshot features stored for this machine.</p>
+        </figure>
+        <% } %>
+        <% if (report.findings.rmsStats.n || report.findings.peakStats.n) { %>
+        <table class="report-table report-stats report-avoid">
+          <thead>
+            <tr><th>Feature</th><th>Min</th><th>Max</th><th>Mean</th><th>Std</th><th>Change vs early-life</th></tr>
+          </thead>
+          <tbody>
+            <% if (report.findings.rmsStats.n) { %>
+            <tr>
+              <td>RMS (g)</td>
+              <td><%= report.findings.rmsStats.min %></td>
+              <td><%= report.findings.rmsStats.max %></td>
+              <td><%= report.findings.rmsStats.mean %></td>
+              <td><%= report.findings.rmsStats.std %></td>
+              <td><%= report.findings.rmsDeltaPct == null ? "Not stored" : ((report.findings.rmsDeltaPct > 0 ? "+" : "") + report.findings.rmsDeltaPct + "% (latest vs " + report.findings.earlyRms + " g)") %></td>
+            </tr>
+            <% } %>
+            <% if (report.findings.peakStats.n) { %>
+            <tr>
+              <td>Peak (g)</td>
+              <td><%= report.findings.peakStats.min %></td>
+              <td><%= report.findings.peakStats.max %></td>
+              <td><%= report.findings.peakStats.mean %></td>
+              <td><%= report.findings.peakStats.std %></td>
+              <td><%= report.findings.peakDeltaPct == null ? "Not stored" : ((report.findings.peakDeltaPct > 0 ? "+" : "") + report.findings.peakDeltaPct + "% (latest vs " + report.findings.earlyPeak + " g)") %></td>
+            </tr>
+            <% } %>
+          </tbody>
+        </table>
+        <% } %>
+        <% if (report.findings.aboveEarlyRmsCount || report.findings.missing.rms || report.findings.missing.peak) { %>
+        <table class="report-table report-kv report-avoid">
+          <tbody>
+            <% if (report.findings.aboveEarlyRmsCount) { %>
+            <tr><th>Bins above early-life RMS</th><td><%= report.findings.aboveEarlyRmsCount %></td></tr>
+            <% } %>
+            <% if (report.findings.missing.rms || report.findings.missing.peak) { %>
+            <tr><th>Missing readings</th><td>RMS <%= report.findings.missing.rms %> · peak <%= report.findings.missing.peak %> of <%= report.findings.seriesCount %> bins</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+        <% } %>
+        <% } %>
+
+        <% if (report.sections.predictions) { %>
+        <h2 class="report-h2"><%= report.sections.predictions %>. Predictive maintenance results</h2>
+        <% if (report.narrative.anomalyInterp) { %>
+        <p><%= report.narrative.anomalyInterp %></p>
+        <% } %>
+        <% if (report.figures.anomaly) { %>
+        <figure class="report-figure">
+          <h3>Figure <%= report.figures.anomaly %>. Isolation Forest anomaly score</h3>
+          <div class="chart-frame"><canvas id="reportAnomalyChart"></canvas></div>
+          <p class="report-caption">Y-axis: −score_samples (dimensionless).<% if (report.thresholds && report.thresholds.ifBaselineMean != null) { %> Dashed line: train early-life mean (<%= report.thresholds.ifBaselineMean %>), a reference, not an investigation cut.<% } %> Flags: <%= report.findings.flaggedIfCount %>.<% if (report.findings.peakAnomalyScore != null) { %> Highest score <%= report.findings.peakAnomalyScore %><% if (report.findings.peakAnomalyAt) { %> at <%= new Date(report.findings.peakAnomalyAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) %><% } %>.<% } %></p>
+        </figure>
+        <% } %>
+        <% if (report.narrative.failureInterp) { %>
+        <p><%= report.narrative.failureInterp %></p>
+        <table class="report-table report-kv report-avoid">
+          <tbody>
+            <% if (report.findings.peakFailProb != null) { %>
+            <tr><th>Highest predicted probability</th><td><%= report.findings.peakFailProb %></td></tr>
+            <% } %>
+            <% if (report.thresholds) { %>
+            <tr><th>Configured threshold</th><td><%= report.thresholds.classifier %></td></tr>
+            <% } %>
+            <tr><th>Bins ≥ threshold</th><td><%= report.findings.flaggedFailCount %></td></tr>
+            <tr><th>Bins with predicted class = risk</th><td><%= report.findings.predictedFailCount %></td></tr>
+            <% if (report.findings.peakFailAt) { %>
+            <tr><th>Time of peak probability</th><td><%= new Date(report.findings.peakFailAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) %></td></tr>
+            <% } %>
+            <% if (report.findings.missing.failProb) { %>
+            <tr><th>Bins without classifier score</th><td><%= report.findings.missing.failProb %></td></tr>
+            <% } %>
+          </tbody>
+        </table>
+        <% } %>
+        <% if (report.figures.fail) { %>
+        <figure class="report-figure">
+          <h3>Figure <%= report.figures.fail %>. Calibrated failure-within-24h probability</h3>
+          <div class="chart-frame is-short"><canvas id="reportFailChart"></canvas></div>
+          <p class="report-caption">Y-axis: probability 0–1.<% if (report.thresholds) { %> Red dashed line is the stored threshold <%= report.thresholds.classifier %>.<% } %> Missing points are timestamps with no classifier score.</p>
+        </figure>
+        <% } %>
+        <% if (report.findings.latestRulHours != null) { %>
+        <table class="report-table report-kv report-avoid">
+          <tbody>
+            <tr><th>Last stored RUL</th><td><%= report.findings.latestRulHours %> h (experimental)</td></tr>
+          </tbody>
+        </table>
+        <% } %>
+        <% } %>
+        <footer class="report-foot">
+          <span>MaintIQ · <%= report.id.toUpperCase() %></span>
+          <span><%= report.machine.assetId %></span>
+        </footer>
+      </section>
+
+      <% if (report.sections.maintenance || report.sections.alerts || report.sections.conclusion) { %>
+      <section class="report-page">
+        <header class="report-masthead is-inner">
+          <div class="report-brand">MaintIQ</div>
+          <div class="report-kicker"><%= report.id.toUpperCase() %> · <%= report.generatedAtLabel %></div>
+        </header>
+
+        <% if (report.sections.maintenance) { %>
+        <h2 class="report-h2"><%= report.sections.maintenance %>. Maintenance history</h2>
+        <% if (report.notes) { %>
+        <p><%= report.notes %></p>
+        <% } %>
+        <% if (report.activity && report.activity.length) { %>
+        <table class="report-table report-avoid">
+          <thead>
+            <tr><th>When</th><th>Action</th><th>Record</th><th>User</th></tr>
+          </thead>
+          <tbody>
+            <% report.activity.forEach(function (row) { %>
+              <tr>
+                <td><%= row.when %></td>
+                <td><%= row.action %></td>
+                <td><%= row.summary %></td>
+                <td><%= row.person || "—" %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+        <% if (report.upload) { %>
+        <table class="report-table report-kv report-avoid">
+          <tbody>
+            <tr><th>Uploaded file</th><td><%= report.upload.name %></td></tr>
+            <tr><th>Validation</th><td><%= report.upload.status %></td></tr>
+            <% if (report.upload.rows != null) { %><tr><th>Rows</th><td><%= report.upload.rows %></td></tr><% } %>
+            <% if (report.upload.columns != null) { %><tr><th>Columns</th><td><%= report.upload.columns %></td></tr><% } %>
+            <% if (report.upload.message) { %><tr><th>Result</th><td><%= report.upload.message %></td></tr><% } %>
+            <% if (report.upload.uploadedAt) { %><tr><th>Uploaded</th><td><%= report.upload.uploadedAt %></td></tr><% } %>
+          </tbody>
+        </table>
+        <% } %>
+        <% if (report.runs && report.runs.length) { %>
+        <table class="report-table report-avoid">
+          <thead>
+            <tr><th>Run</th><th>Status</th><th>Dataset</th><th>Window</th><th>Updated</th></tr>
+          </thead>
+          <tbody>
+            <% report.runs.forEach(function (run) { %>
+              <tr>
+                <td><%= run.id %></td>
+                <td><%= run.status %></td>
+                <td><%= run.dataset %></td>
+                <td><%= run.windowLabel || run.periodLabel %></td>
+                <td><%= run.updated %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+        <% } %>
+
+        <% if (report.sections.alerts) { %>
+        <h2 class="report-h2"><%= report.sections.alerts %>. Failures, alerts and summary</h2>
+        <table class="report-table report-kv report-avoid">
+          <tbody>
+            <tr><th>Open alerts</th><td><%= report.alerts.openCount %></td></tr>
+            <tr><th>Resolved alerts</th><td><%= report.alerts.resolvedCount %></td></tr>
+            <% if (report.findings.seriesCount) { %>
+            <tr><th>Anomaly flags in period</th><td><%= report.alerts.anomalyFlags %></td></tr>
+            <% } %>
+            <% if (report.machine.health && report.machine.health !== 'Unknown') { %>
+            <tr><th>Overall stored condition</th><td><%= report.machine.health %></td></tr>
+            <% } %>
+          </tbody>
+        </table>
+        <table class="report-table report-avoid">
+          <thead>
+            <tr><th>When</th><th>Severity</th><th>Status</th><th>Alert</th><th>Value</th></tr>
+          </thead>
+          <tbody>
+            <% report.alerts.items.forEach(function (alert) { %>
+              <tr>
+                <td><%= alert.created %></td>
+                <td><%= alert.severity %></td>
+                <td><%= alert.status %></td>
+                <td><%= alert.title %></td>
+                <td><%= alert.value || "—" %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+
+        <h2 class="report-h2"><%= report.sections.conclusion %>. Conclusion</h2>
+        <p><%= report.narrative.conclusion %></p>
+
+        <footer class="report-foot">
+          <span>MaintIQ · <%= report.id.toUpperCase() %></span>
+          <span><%= report.machine.assetId %></span>
+        </footer>
+      </section>
+      <% } %>
+    </article>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+      window.REPORT_CHARTS = <%- JSON.stringify(report.charts || {}) %>;
+    </script>
+    <script src="/js/report-charts.js?v=4"></script>
+  </body>
+</html>

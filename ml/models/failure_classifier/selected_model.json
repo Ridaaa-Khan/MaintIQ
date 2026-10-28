@@ -1,0 +1,39 @@
+{
+  "model_path": "models/failure_classifier/xgboost_failure_classifier.joblib",
+  "raw_model_path": "models/failure_classifier/xgboost_failure_classifier_raw.joblib",
+  "feature_columns_path": "models/failure_classifier/feature_columns.json",
+  "threshold_path": "models/failure_classifier/threshold.json",
+  "threshold": 0.315,
+  "calibrated": true,
+  "calibration_method": "sigmoid",
+  "best_trial": {
+    "trial": 1,
+    "params": {
+      "max_depth": 2,
+      "min_child_weight": 10,
+      "learning_rate": 0.03,
+      "reg_lambda": 3.0,
+      "reg_alpha": 0.2,
+      "subsample": 0.8,
+      "colsample_bytree": 0.7,
+      "scale_pos_weight": 10.737480070336316
+    },
+    "val_average_precision": 0.818799325059106,
+    "val_roc_auc": 0.9956758446429967,
+    "best_iteration": 184
+  },
+  "verification": {
+    "val_precision_ge_0_30": true,
+    "val_recall_ge_0_60": true,
+    "val_f1_ge_0_40": true,
+    "val_ap_ge_0_30": true,
+    "test_precision_ge_0_50": true,
+    "test_recall_ge_0_40": true,
+    "test_ap_ge_0_70": true,
+    "failed_val_recall_ge_0_60": true,
+    "failed_test_any_recall_ge_0_40": true,
+    "healthy_val_no_mass_false_alarms": true,
+    "all_critical_passed": true
+  },
+  "target": "failure_within_24h"
+}

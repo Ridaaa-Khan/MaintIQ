@@ -1,0 +1,126 @@
+<%- include('partials/app-open', { page: 'dashboard', title: 'Dashboard', heading: 'Dashboard', kicker: 'Fleet overview', user }) %>
+
+<div class="page-head">
+  <div>
+    <h2>Welcome back, <%= user.first_name %>.</h2>
+    <p>Monitor your equipment fleet, machine health, and active alerts at a glance.</p>
+  </div>
+</div>
+
+<section class="metric-grid">
+  <article class="card metric-card">
+    <div class="label">Total Machines</div>
+    <div class="value"><%= dashboard.totalMachines %></div>
+    <div class="hint">Machines on record</div>
+  </article>
+  <article class="card metric-card">
+    <div class="label">Healthy Machines</div>
+    <div class="value"><%= dashboard.healthy %></div>
+    <div class="hint">Within expected bands</div>
+  </article>
+  <article class="card metric-card">
+    <div class="label">Requiring Attention</div>
+    <div class="value"><%= dashboard.attention %></div>
+    <div class="hint">Warning or critical</div>
+  </article>
+  <article class="card metric-card">
+    <div class="label">Active Alerts</div>
+    <div class="value"><%= dashboard.activeAlerts %></div>
+    <div class="hint">Model flags from stored scores</div>
+  </article>
+</section>
+
+<section class="grid-2">
+  <article class="card">
+    <h3 class="card-title">Machine health distribution</h3>
+    <div class="chart-wrap"><canvas id="healthDonut"></canvas></div>
+  </article>
+  <article class="card">
+    <div class="chart-head">
+      <h3 class="card-title">Health trends</h3>
+      <% if (dashboard.trendMachines.length) { %>
+        <select class="select" id="health-trend-machine" aria-label="Machine for health trend">
+          <% dashboard.trendMachines.forEach(function (machine) { %>
+            <option value="<%= machine.id %>" <%= machine.id === dashboard.defaultTrendId ? "selected" : "" %>><%= machine.name %> (<%= machine.assetId %>)</option>
+          <% }) %>
+        </select>
+      <% } %>
+    </div>
+    <div class="chart-wrap"><canvas id="healthTrend"></canvas></div>
+  </article>
+</section>
+
+<section class="grid-3">
+  <article class="card">
+    <h3 class="card-title">Recent alerts</h3>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Machine</th>
+            <th>Type</th>
+            <th>Severity</th>
+            <th>Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!dashboard.recentAlerts.length) { %>
+            <tr><td colspan="5" class="muted">No model flags in the stored IMS scores.</td></tr>
+          <% } %>
+          <% dashboard.recentAlerts.forEach(function (alert) { %>
+            <tr>
+              <td><%= alert.machine %></td>
+              <td><%= alert.type %></td>
+              <td><span class="badge badge-<%= alert.severityClass %>"><%= alert.severity %></span></td>
+              <td><%= alert.time %></td>
+              <td><span class="badge badge-<%= alert.statusClass %>"><%= alert.status %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="card">
+    <h3 class="card-title">Machines requiring attention</h3>
+    <div class="list">
+      <% if (!dashboard.attentionList.length) { %>
+        <div class="list-item"><div class="muted">All scored bearings are healthy.</div></div>
+      <% } %>
+      <% dashboard.attentionList.forEach(function (item) { %>
+        <div class="list-item">
+          <div>
+            <strong><a href="/machines/<%= item.id %>"><%= item.name %></a></strong>
+            <div class="muted"><%= item.detail %></div>
+          </div>
+          <span class="badge badge-<%= item.healthClass %>"><%= item.health %></span>
+        </div>
+      <% }) %>
+    </div>
+  </article>
+
+  <article class="card">
+    <h3 class="card-title">Recent activity</h3>
+    <div class="list">
+      <% dashboard.activity.forEach(function (item) { %>
+        <div class="list-item">
+          <div>
+            <%= item.text %>
+            <div class="muted"><%= item.when %></div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </article>
+</section>
+
+<script>
+  window.DASHBOARD_DATA = <%- JSON.stringify({
+    healthCounts: dashboard.healthCounts,
+    trends: dashboard.trends,
+    defaultTrendId: dashboard.defaultTrendId,
+  }) %>;
+</script>
+
+<%- include('partials/app-close') %>

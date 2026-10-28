@@ -1,0 +1,20 @@
+{
+  "threshold": 0.315,
+  "selection_rule": "Max validation F1 among thresholds with precision >= 0.30 and recall >= 0.60",
+  "validation_threshold_stats": {
+    "threshold": 0.315,
+    "precision": 0.8181818181818182,
+    "recall": 0.9230769230769231,
+    "f1": 0.8674698795180723,
+    "meets_precision_floor": true,
+    "meets_recall_floor": true,
+    "n_eligible_thresholds": 38,
+    "selection_rule": "Max validation F1 among thresholds with precision >= 0.30 and recall >= 0.60"
+  },
+  "min_val_precision": 0.3,
+  "min_val_recall": 0.6,
+  "target": "failure_within_24h",
+  "positive_class": 1,
+  "calibrated": true,
+  "calibration_method": "sigmoid"
+}

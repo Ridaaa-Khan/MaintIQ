@@ -1,0 +1,24 @@
+<%- include('partials/app-open', { page: 'reports', title: report.name, heading: 'Report preview', kicker: report.id.toUpperCase(), user }) %>
+
+<div class="page-head">
+  <div>
+    <h2><%= report.name %></h2>
+    <p><%= [report.machine.assetId, report.datasetId, report.runId].filter(Boolean).join(" · ") %></p>
+  </div>
+  <div class="btn-row">
+    <button class="btn" type="button" id="print-report">Print</button>
+    <a class="btn" href="/reports/pdf?id=<%= report.id %>">Download PDF</a>
+    <a class="btn btn-primary" href="/reports">Back</a>
+  </div>
+</div>
+
+<iframe class="report-frame" id="report-frame" title="Report document" src="/reports/document?id=<%= report.id %>"></iframe>
+
+<script>
+  document.getElementById("print-report")?.addEventListener("click", () => {
+    const frame = document.getElementById("report-frame");
+    frame?.contentWindow?.print();
+  });
+</script>
+
+<%- include('partials/app-close') %>

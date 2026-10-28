@@ -1,0 +1,33 @@
+{
+  "train_mean_baseline_hours": 317.50469760247483,
+  "comparisons": [
+    {
+      "split": "validation",
+      "model": {
+        "mae_hours": 145.77506645007205,
+        "rmse_hours": 215.09441065370456,
+        "r2": 0.16147562216769695
+      },
+      "mean_baseline": {
+        "mae_hours": 201.73641429722423,
+        "rmse_hours": 234.89365118412007,
+        "r2": 0.0
+      },
+      "mae_improvement_hours": 55.96134784715218
+    },
+    {
+      "split": "test",
+      "model": {
+        "mae_hours": 274.58347976139976,
+        "rmse_hours": 330.3097010232925,
+        "r2": -0.016516554035602482
+      },
+      "mean_baseline": {
+        "mae_hours": 302.10018006828284,
+        "rmse_hours": 364.05195797090516,
+        "r2": -0.23480545694086974
+      },
+      "mae_improvement_hours": 27.51670030688308
+    }
+  ]
+}

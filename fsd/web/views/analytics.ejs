@@ -1,0 +1,209 @@
+<%- include('partials/app-open', { page: 'analytics', title: 'Analytics', heading: 'Analytics', kicker: 'Performance insights', user }) %>
+
+<div class="page-head">
+  <div>
+    <h2>Historical IMS behaviour</h2>
+    <p>Explore historical vibration trends, anomaly patterns, failure predictions, and frequency-domain features across selected time periods.</p>
+  </div>
+  <div class="analytics-filters-wrap">
+    <button class="btn" type="button" id="analytics-filters-toggle" aria-expanded="false" aria-controls="analytics-filters-panel">Filters</button>
+    <div class="analytics-filters-panel card" id="analytics-filters-panel" hidden>
+      <form class="form-grid" id="analytics-filters">
+        <label>Machine
+          <select class="select" id="analytics-machine" aria-label="Machine">
+            <% machines.forEach(function (m) { %>
+              <option value="<%= m.id %>" <%= m.id === selectedId ? "selected" : "" %>><%= m.name %> (<%= m.assetId %>)</option>
+            <% }) %>
+          </select>
+        </label>
+        <label>From
+          <input type="date" id="analytics-from" aria-label="From date" />
+        </label>
+        <label>To
+          <input type="date" id="analytics-to" aria-label="To date" />
+        </label>
+        <label>Processed features
+          <select class="select" id="analytics-features" aria-label="Processed features">
+            <option value="rms,peak,kurtosis">RMS, Peak, Kurtosis</option>
+            <option value="rms,peak">RMS, Peak</option>
+            <option value="kurtosis,crest">Kurtosis, Crest factor</option>
+            <option value="bpfo,bpfi">BPFO, BPFI magnitude</option>
+          </select>
+        </label>
+        <div class="btn-row analytics-filters-actions">
+          <button class="btn btn-primary" type="button" id="analytics-apply">Apply</button>
+          <button class="btn" type="button" id="analytics-reset">Remove filters</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div data-tabs id="analytics-tabs">
+  <div class="tabs">
+    <button class="tab is-active" type="button" data-tab="vibration">Vibration</button>
+    <button class="tab" type="button" data-tab="anomalies">Anomalies</button>
+    <button class="tab" type="button" data-tab="failure">Failure Prediction</button>
+    <button class="tab" type="button" data-tab="frequency">Frequency Analysis</button>
+    <button class="tab" type="button" data-tab="performance">Model Performance</button>
+  </div>
+
+  <section class="tab-panel is-active" data-panel="vibration">
+    <section class="metric-grid">
+      <article class="card metric-card"><div class="label">Avg. RMS</div><div class="value" id="m-rms">—</div><p class="muted metric-sub" id="m-rms-sub">vs early-life mean</p></article>
+      <article class="card metric-card"><div class="label">Peak vibration</div><div class="value" id="m-peak">—</div><p class="muted metric-sub" id="m-peak-sub">latest window</p></article>
+      <article class="card metric-card"><div class="label">Kurtosis</div><div class="value" id="m-kurt">—</div><p class="muted metric-sub">latest window</p></article>
+      <article class="card metric-card"><div class="label">Windows in range</div><div class="value" id="m-n" style="font-size:1.2rem">—</div><p class="muted metric-sub">12-hour means</p></article>
+    </section>
+    <div class="analytics-split">
+      <article class="card">
+        <div class="chart-head">
+          <div>
+            <h3 class="card-title">Processed vibration features</h3>
+            <p class="muted">RMS and peak in g; early-life reference is the first 20% of this run.</p>
+          </div>
+          <button class="btn explain-toggle" type="button" data-explain-graph="vibration" aria-expanded="false" aria-controls="explain-vibration">Explain</button>
+        </div>
+        <div class="chart-wrap" style="height:320px"><canvas id="rmsChart"></canvas></div>
+        <%- include('partials/explain-panel', { graphId: 'vibration', graphTitle: 'Processed vibration features' }) %>
+      </article>
+      <aside class="card context-card">
+        <h3 class="card-title">What changed</h3>
+        <div id="vibration-context" class="context-body"></div>
+      </aside>
+    </div>
+    <article class="card" style="margin-top:14px">
+      <h3 class="card-title">Windows in this range</h3>
+      <div class="table-wrap">
+        <table class="data" id="analytics-windows">
+          <thead>
+            <tr>
+              <th>Time window</th>
+              <th>RMS (g)</th>
+              <th>Peak (g)</th>
+              <th>Anomaly score</th>
+              <th>Failure prob.</th>
+              <th>Predicted RUL</th>
+              <th>Flags</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <nav class="pager" data-pager-for="#analytics-windows" aria-label="Window pages"></nav>
+    </article>
+  </section>
+
+  <section class="tab-panel" data-panel="anomalies">
+    <article class="card">
+      <div class="chart-head">
+        <div>
+          <h3 class="card-title">Isolation Forest anomaly score</h3>
+          <p class="muted">Higher = more unlike the early-life baseline; dashed line is the train mean (0.431).</p>
+        </div>
+        <button class="btn explain-toggle" type="button" data-explain-graph="anomalies" aria-expanded="false" aria-controls="explain-anomalies">Explain</button>
+      </div>
+      <div class="chart-wrap" style="height:300px"><canvas id="anomalyChart"></canvas></div>
+      <%- include('partials/explain-panel', { graphId: 'anomalies', graphTitle: 'Isolation Forest anomaly score' }) %>
+    </article>
+    <aside class="card context-card" style="margin-top:14px">
+      <h3 class="card-title">Flags in this window</h3>
+      <div id="anomaly-context" class="context-body"></div>
+    </aside>
+  </section>
+
+  <section class="tab-panel" data-panel="failure">
+    <article class="card">
+      <div class="chart-head">
+        <div>
+          <h3 class="card-title">Failure within 24 h — calibrated probability</h3>
+          <p class="muted">Calibrated probability vs threshold <strong>0.315</strong> — a 24-hour horizon flag, not a confirmed failure.</p>
+        </div>
+        <button class="btn explain-toggle" type="button" data-explain-graph="failure" aria-expanded="false" aria-controls="explain-failure">Explain</button>
+      </div>
+      <div class="chart-wrap" style="height:300px"><canvas id="failureChart"></canvas></div>
+      <%- include('partials/explain-panel', { graphId: 'failure', graphTitle: 'Failure within 24 h — calibrated probability' }) %>
+    </article>
+    <aside class="card context-card" style="margin-top:14px">
+      <h3 class="card-title">Threshold crossings</h3>
+      <div id="failure-context" class="context-body"></div>
+    </aside>
+  </section>
+
+  <section class="tab-panel" data-panel="frequency">
+    <div class="grid-2 analytics-chart-grid">
+      <article class="card">
+        <div class="chart-head">
+          <div>
+            <h3 class="card-title">Band energy — latest vs early-life mean</h3>
+            <p class="muted">FFT band energy vs early-life mean (envelope design band 1–3 kHz).</p>
+          </div>
+          <button class="btn explain-toggle" type="button" data-explain-graph="frequency" aria-expanded="false" aria-controls="explain-frequency">Explain</button>
+        </div>
+        <div class="chart-wrap" style="height:260px"><canvas id="freqChart"></canvas></div>
+        <%- include('partials/explain-panel', { graphId: 'frequency', graphTitle: 'Band energy — latest vs early-life mean' }) %>
+      </article>
+      <article class="card">
+        <div class="chart-head">
+          <div>
+            <h3 class="card-title">Fault-frequency magnitudes (latest window)</h3>
+            <p class="muted">FTF / BSF / BPFO / BPFI magnitudes at 2000 RPM — spectral values, not a diagnosis.</p>
+          </div>
+          <button class="btn explain-toggle" type="button" data-explain-graph="faultfreq" aria-expanded="false" aria-controls="explain-faultfreq">Explain</button>
+        </div>
+        <div class="chart-wrap" style="height:260px"><canvas id="faultFreqChart"></canvas></div>
+        <%- include('partials/explain-panel', { graphId: 'faultfreq', graphTitle: 'Fault-frequency magnitudes (latest window)' }) %>
+      </article>
+    </div>
+    <aside class="card context-card" style="margin-top:14px">
+      <h3 class="card-title">Frequency reading</h3>
+      <div id="frequency-context" class="context-body"></div>
+    </aside>
+  </section>
+
+  <section class="tab-panel" data-panel="performance">
+    <p class="muted" style="margin:0 0 14px">Held-out IMS Test 3 metrics. For RUL, use last-24h and last-72h MAE as the operational view.</p>
+    <div class="metric-grid">
+      <article class="card metric-card"><div class="label">Classifier F1 (val / test)</div><div class="value" style="font-size:1.2rem">0.87 / 0.61</div></article>
+      <article class="card metric-card"><div class="label">Classifier threshold</div><div class="value">0.315</div></article>
+      <article class="card metric-card"><div class="label">IF late-life lift (val)</div><div class="value">+0.24</div></article>
+      <article class="card metric-card"><div class="label">RUL MAE last 24 h (test)</div><div class="value" style="font-size:1.2rem">2 h</div></article>
+    </div>
+    <div class="grid-2 analytics-chart-grid">
+      <article class="card">
+        <div class="chart-head">
+          <div>
+            <h3 class="card-title">Classifier precision / recall / F1</h3>
+          </div>
+          <button class="btn explain-toggle" type="button" data-explain-graph="performance" aria-expanded="false" aria-controls="explain-performance">Explain</button>
+        </div>
+        <div class="chart-wrap"><canvas id="rocChart"></canvas></div>
+        <%- include('partials/explain-panel', { graphId: 'performance', graphTitle: 'Classifier precision / recall / F1' }) %>
+      </article>
+      <article class="card">
+        <h3 class="card-title">Test confusion matrix (threshold 0.315)</h3>
+        <table class="data">
+          <thead><tr><th></th><th>Pred. healthy</th><th>Pred. risk</th></tr></thead>
+          <tbody>
+            <tr><th>Actual healthy</th><td>12,355</td><td>0</td></tr>
+            <tr><th>Actual last 24 h</th><td>81</td><td>64</td></tr>
+          </tbody>
+        </table>
+        <p class="muted">When the classifier fires on Test 3 it is right (precision 1.00). It still misses part of the 24 h window (recall 0.44).</p>
+      </article>
+    </div>
+    <article class="card" style="margin-top:14px">
+      <div class="chart-head">
+        <div>
+          <h3 class="card-title">RUL regressor — operational MAE</h3>
+          <p class="note">Experimental. Prefer last-24 h and last-72 h MAE; full-run MAE is dominated by early-life hours and is not a useful headline.</p>
+        </div>
+        <button class="btn explain-toggle" type="button" data-explain-graph="rul" aria-expanded="false" aria-controls="explain-rul">Explain</button>
+      </div>
+      <div class="chart-wrap" style="height:240px"><canvas id="rulChart"></canvas></div>
+      <%- include('partials/explain-panel', { graphId: 'rul', graphTitle: 'RUL regressor — operational MAE' }) %>
+    </article>
+  </section>
+</div>
+
+<%- include('partials/app-close') %>

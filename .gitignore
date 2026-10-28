@@ -1,0 +1,53 @@
+# Virtual environment
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Large Isolation Forest score dumps (regenerate via train_isolation_forest.py)
+ml/models/isolation_forest/scores_train.csv
+ml/models/isolation_forest/scores_val.csv
+ml/models/isolation_forest/scores_test.csv
+*_scored.csv
+
+# Classifier prediction dumps (regenerate via train_failure_classifier.py)
+ml/models/failure_classifier/predictions_*.csv
+*_failure_scored.csv
+*_rul_scored.csv
+
+# RUL prediction dumps
+ml/models/rul_regressor/predictions_*.csv
+
+# Secrets
+.env
+**/.env
+fsd/web/db.local.js
+
+# Web
+fsd/web/node_modules/
+fsd/web/storage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Raw industrial bearing datasets — keep local
+ml/data/raw/
+
+# Regenerable intermediate feature datasets
+ml/data/processed/*.csv
+ml/data/processed/final_feature_analysis/
+ml/data/processed/temporal_analysis/
+
+# Regenerable model experiment outputs
+ml/models/*/predictions_*.csv
+ml/models/*/scores_*.csv
+ml/models/*/shap_explanations/
+ml/models/*/*.png
+ml/models/*/hyperparameter_search.csv

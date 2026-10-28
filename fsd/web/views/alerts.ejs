@@ -1,0 +1,216 @@
+<%- include('partials/app-open', { page: 'alerts', title: 'Alerts', heading: 'Alerts', kicker: 'Anomaly & failure alerts', user }) %>
+
+<div class="page-head">
+  <div>
+    <h2>Abnormal conditions</h2>
+    <p>Review detected anomalies and predicted failure risks to identify equipment that may require further inspection.</p>
+  </div>
+</div>
+
+<section class="metric-grid alert-metrics">
+  <article class="card metric-card metric-card-rich">
+    <div class="metric-icon metric-icon-blue" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 21h4M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M9 21a3 3 0 0 0 6 0" opacity="0"/></svg>
+    </div>
+    <div>
+      <div class="label">Active alerts</div>
+      <div class="value"><%= alertStats.active %></div>
+      <p class="muted metric-sub">From stored scores</p>
+    </div>
+  </article>
+  <article class="card metric-card metric-card-rich">
+    <div class="metric-icon metric-icon-red" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 16H3L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>
+    </div>
+    <div>
+      <div class="label">Critical</div>
+      <div class="value"><%= alertStats.critical %></div>
+      <p class="muted metric-sub">Highest severity flags</p>
+    </div>
+  </article>
+  <article class="card metric-card metric-card-rich">
+    <div class="metric-icon metric-icon-muted" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h11M8 12h11M8 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>
+    </div>
+    <div>
+      <div class="label">Unacknowledged</div>
+      <div class="value"><%= alertStats.unacknowledged %></div>
+      <p class="muted metric-sub">Awaiting review</p>
+    </div>
+  </article>
+  <article class="card metric-card metric-card-rich">
+    <div class="metric-icon metric-icon-green" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
+    </div>
+    <div>
+      <div class="label">Resolved today</div>
+      <div class="value"><%= alertStats.resolvedToday %></div>
+      <p class="muted metric-sub">Closed in this session day</p>
+    </div>
+  </article>
+</section>
+
+<div class="toolbar" id="alerts-toolbar">
+  <input class="search" type="search" placeholder="Search alerts or machines..." data-search="#alerts-table" />
+  <select class="select" data-filter="#alerts-table" data-key="severity">
+    <option value="">Severity</option>
+    <% severities.forEach(function (value) { %><option><%= value %></option><% }) %>
+  </select>
+  <select class="select" data-filter="#alerts-table" data-key="status">
+    <option value="">Status</option>
+    <% statuses.forEach(function (value) { %><option><%= value %></option><% }) %>
+  </select>
+  <select class="select" data-filter="#alerts-table" data-key="type">
+    <option value="">Alert type</option>
+    <option>Anomaly detection</option>
+    <option>Failure prediction</option>
+  </select>
+  <select class="select" data-sort="#alerts-table">
+    <option value="created">Sort by newest</option>
+    <option value="createdAsc">Sort by oldest</option>
+    <option value="severityRank">Sort by severity</option>
+  </select>
+  <label class="date-field">
+    <span class="date-field-lead" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18M8 15h4"/></svg>
+    </span>
+    <span class="date-field-text" data-date-placeholder>From date</span>
+    <input type="date" id="alerts-from" aria-label="From date" data-clearable data-date-input />
+    <span class="date-field-trail" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+    </span>
+  </label>
+  <label class="date-field">
+    <span class="date-field-lead" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18M8 15h4"/></svg>
+    </span>
+    <span class="date-field-text" data-date-placeholder>To date</span>
+    <input type="date" id="alerts-to" aria-label="To date" data-clearable data-date-input />
+    <span class="date-field-trail" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+    </span>
+  </label>
+  <button class="btn btn-ghost" type="button" data-clear-filters>Clear filters</button>
+</div>
+
+<section class="card">
+  <div class="table-wrap">
+    <table class="data" id="alerts-table">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Alert / Trigger</th>
+          <th>Machine</th>
+          <th>Created</th>
+          <th>Resolved at</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!alerts.length) { %>
+          <tr><td colspan="7" class="muted">No model flags in the stored IMS scores.</td></tr>
+        <% } %>
+        <% alerts.forEach(function (alert, index) { %>
+          <tr
+            class="<%= index === 0 ? 'is-selected' : '' %>"
+            data-alert-key="<%= alert.id %>"
+            data-search="<%= alert.search %>"
+            data-severity="<%= alert.severity %>"
+            data-machine="<%= alert.machine %>"
+            data-status="<%= alert.status %>"
+            data-type="<%= alert.type %>"
+            data-title="<%= alert.title %>"
+            data-trigger="<%= alert.trigger %>"
+            data-asset="<%= alert.assetId %>"
+            data-created="<%= alert.createdIso %>"
+            data-day="<%= alert.createdDay %>"
+            data-severity-rank="<%= alert.severity === 'Critical' ? 1 : alert.severity === 'High' ? 2 : alert.severity === 'Medium' ? 3 : 4 %>"
+            data-resolved="<%= alert.resolved %>"
+            data-value="<%= alert.value %>"
+            data-threshold="<%= alert.threshold %>"
+            data-why="<%= alert.why %>"
+            data-machine-id="<%= alert.machineId %>"
+            data-machine-href="<%= alert.machineHref %>"
+            data-created-iso="<%= alert.createdIso %>"
+          >
+            <td>
+              <span class="sev sev-<%= alert.severityClass %>"><span class="sev-dot"></span> <%= alert.severity %></span>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <strong><%= alert.title %></strong>
+                <span class="muted"><%= alert.trigger %></span>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <strong><%= alert.machine %></strong>
+                <span class="muted"><%= alert.assetId %></span>
+              </div>
+            </td>
+            <td><%= alert.created %></td>
+            <td class="muted"><%= alert.resolvedLabel %></td>
+            <td><span class="badge badge-<%= alert.statusClass %>"><%= alert.status %></span></td>
+            <td>
+              <div class="btn-row">
+                <button class="btn" type="button" data-inspect-alert>Inspect</button>
+                <div class="menu">
+                  <button class="btn btn-icon menu-trigger" type="button" aria-label="More">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+                  </button>
+                  <div class="menu-panel" hidden>
+                    <a class="menu-item" href="<%= alert.machineHref %>">View machine</a>
+                    <a class="menu-item" href="/analytics?machine=<%= encodeURIComponent(alert.machineId) %>">Open analytics</a>
+                    <% if (alert.status === 'New') { %>
+                      <button class="menu-item" type="button" data-ack-alert>Acknowledge</button>
+                    <% } %>
+                    <% if (alert.status !== 'Resolved') { %>
+                      <button class="menu-item" type="button" data-resolve-alert>Resolve</button>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<nav class="pager" data-pager-for="#alerts-table" aria-label="Alert pages"></nav>
+
+<aside class="drawer drawer-peek" id="alert-drawer">
+  <div class="drawer-panel">
+    <div class="drawer-head drawer-head-split">
+      <div>
+        <h3 class="card-title">Alert details</h3>
+        <div class="btn-row" style="margin-top:8px">
+          <span class="badge" id="alert-drawer-sev">Critical</span>
+          <span class="badge" id="alert-drawer-status">New</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="alert-drawer-ack" data-ack-alert hidden>Acknowledge</button>
+        <button class="btn" type="button" id="alert-drawer-resolve" data-resolve-alert hidden>Resolve</button>
+        <button class="btn btn-icon" type="button" data-close aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="drawer-body">
+      <h4 class="alert-drawer-title" id="alert-drawer-title">Alert</h4>
+      <p class="muted" id="alert-drawer-desc">Model-triggered investigation item from stored IMS scores.</p>
+
+      <dl class="detail-list" id="alert-drawer-meta"></dl>
+
+      <h4 class="drawer-section">Anomaly score (IMS 12h series)</h4>
+      <div class="chart-wrap" style="height:160px"><canvas id="alertSpark"></canvas></div>
+
+      <h4 class="drawer-section">Why this was flagged</h4>
+      <ul class="why-list" id="alert-drawer-why"></ul>
+    </div>
+  </div>
+</aside>
+
+<%- include('partials/app-close') %>

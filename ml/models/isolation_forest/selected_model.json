@@ -1,0 +1,45 @@
+{
+  "selected_label": "1pct",
+  "selected_contamination": 0.01,
+  "model_path": "models\\isolation_forest\\isolation_forest_selected.joblib",
+  "feature_columns_path": "models/isolation_forest/feature_columns.json",
+  "preprocessing": [
+    "SimpleImputer(strategy='median')",
+    "StandardScaler()",
+    "IsolationForest"
+  ],
+  "selection_rule": "Among contamination settings that show positive late-life score lift on failed validation trajectories, choose the lowest validation operational flag rate. Test metrics are not used for selection.",
+  "validation_stats": {
+    "val_operational_flag_rate": 0.2302295918367347,
+    "val_failed_mean_score_lift": 0.24374243289017078,
+    "val_failed_late_flag_rate": 1.0
+  },
+  "candidates": [
+    {
+      "label": "auto",
+      "contamination": "auto",
+      "val_operational_flag_rate": 0.43399234693877553,
+      "val_failed_mean_score_lift": 0.24374243289017078,
+      "val_failed_late_flag_rate": 1.0,
+      "detects_failed_val_degradation": true
+    },
+    {
+      "label": "1pct",
+      "contamination": 0.01,
+      "val_operational_flag_rate": 0.2302295918367347,
+      "val_failed_mean_score_lift": 0.24374243289017078,
+      "val_failed_late_flag_rate": 1.0,
+      "detects_failed_val_degradation": true
+    }
+  ],
+  "verification": {
+    "val_failed_positive_lift": true,
+    "baseline_flag_rate": 0.010206396008165117,
+    "baseline_mostly_inliers": true,
+    "val_operational_flag_rate": 0.2302295918367347,
+    "val_flag_rate_reasonable": true,
+    "any_failed_late_flag_gt_0.5": true,
+    "all_critical_passed": true
+  },
+  "feature_policy": "All 190 eligible numeric vibration/temporal features after excluding metadata and target/mask columns. Gap features (large_gap_flag, time_since_previous_hours) are retained as ordinary features."
+}

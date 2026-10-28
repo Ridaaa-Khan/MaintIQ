@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign up — MaintIQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/auth.css?v=6" />
+  </head>
+  <body class="auth-page">
+    <div class="auth-bg" aria-hidden="true"></div>
+    <div class="auth-bg-veil" aria-hidden="true"></div>
+
+    <a class="auth-brand" href="/">
+      <span class="auth-brand-mark" aria-hidden="true"></span>
+      MaintIQ
+    </a>
+
+    <main class="auth-shell">
+      <div class="auth-card">
+        <h1 class="auth-title">Sign up</h1>
+        <p class="auth-switch auth-switch--top">
+          Already a user?
+          <a href="/signin">Sign in to get started</a>
+        </p>
+
+        <% if (errors && errors.length) { %>
+          <ul class="auth-errors">
+            <% errors.forEach(function (msg) { %>
+              <li><%= msg %></li>
+            <% }) %>
+          </ul>
+        <% } %>
+
+        <form class="auth-form" action="/signup" method="post" novalidate>
+          <div class="auth-grid">
+            <label class="auth-field">
+              <span class="auth-label">First Name</span>
+              <input
+                class="auth-input"
+                type="text"
+                name="firstName"
+                maxlength="50"
+                autocomplete="given-name"
+                placeholder="First name"
+                value="<%= values.firstName || '' %>"
+                required
+              />
+            </label>
+
+            <label class="auth-field">
+              <span class="auth-label">Last Name</span>
+              <input
+                class="auth-input"
+                type="text"
+                name="lastName"
+                maxlength="50"
+                autocomplete="family-name"
+                placeholder="Last name"
+                value="<%= values.lastName || '' %>"
+                required
+              />
+            </label>
+          </div>
+
+          <label class="auth-field">
+            <span class="auth-label">Email ID</span>
+            <input
+              class="auth-input"
+              type="email"
+              name="email"
+              maxlength="255"
+              autocomplete="email"
+              placeholder="you@company.com"
+              value="<%= values.email || '' %>"
+              required
+            />
+          </label>
+
+          <label class="auth-field">
+            <span class="auth-label">
+              Phone number
+              <span class="auth-optional">(optional)</span>
+            </span>
+            <input
+              class="auth-input"
+              type="tel"
+              name="phone"
+              maxlength="10"
+              inputmode="numeric"
+              autocomplete="tel"
+              placeholder="9876543210"
+              value="<%= values.phone || '' %>"
+            />
+          </label>
+
+          <label class="auth-field">
+            <span class="auth-label">Password</span>
+            <input
+              class="auth-input"
+              type="password"
+              name="password"
+              autocomplete="new-password"
+              placeholder="Create a password"
+              required
+            />
+          </label>
+
+          <button class="auth-submit" type="submit">Sign up</button>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>

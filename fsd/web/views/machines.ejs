@@ -1,0 +1,195 @@
+<%- include('partials/app-open', { page: 'machines', title: 'Machines', heading: 'Machines', kicker: 'Equipment registry', user }) %>
+
+<div class="page-head">
+  <div>
+    <h2>Registered equipment</h2>
+    <p>Manage registered machines, inspect equipment details, and upload datasets for validation.</p>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" type="button" data-open="#add-machine">Add machine</button>
+  </div>
+</div>
+
+<% if (formErrors && formErrors.length) { %>
+  <p class="form-error"><%= formErrors.join(" ") %></p>
+<% } %>
+
+<div class="toolbar">
+  <input class="search" type="search" placeholder="Search name or asset ID" data-search="#machine-table" />
+  <select class="select" data-filter="#machine-table" data-key="health">
+    <option value="">Health</option>
+    <% filters.health.forEach(function (value) { %><option><%= value %></option><% }) %>
+  </select>
+  <select class="select" data-filter="#machine-table" data-key="type">
+    <option value="">Type</option>
+    <% filters.types.forEach(function (value) { %><option><%= value %></option><% }) %>
+  </select>
+  <select class="select" data-filter="#machine-table" data-key="monitoring">
+    <option value="">Monitoring</option>
+    <% filters.monitoring.forEach(function (value) { %><option><%= value %></option><% }) %>
+  </select>
+  <select class="select" data-sort="#machine-table">
+    <option value="last">Sort by last data</option>
+    <option value="name">Sort by name</option>
+    <option value="score">Sort by health score</option>
+  </select>
+  <div class="btn-row view-toggle">
+    <button class="btn btn-icon btn-primary" type="button" data-view="table" title="Table view" aria-label="Table view">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M3 12h18M3 19h18"/></svg>
+    </button>
+    <button class="btn btn-icon" type="button" data-view="cards" title="Card view" aria-label="Card view">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="card table-view">
+  <div class="table-wrap">
+    <table class="data" id="machine-table">
+      <thead>
+        <tr>
+          <th>Machine</th>
+          <th>Asset ID</th>
+          <th>Type</th>
+          <th>Location</th>
+          <th>Health</th>
+          <th>Monitoring</th>
+          <th>Last Data</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!machines.length) { %>
+          <tr><td colspan="8" class="muted">No scored IMS machines loaded.</td></tr>
+        <% } %>
+        <% machines.forEach(function (m) { %>
+          <tr
+            data-id="<%= m.id %>"
+            data-search="<%= (m.name + ' ' + m.assetId).toLowerCase() %>"
+            data-health="<%= m.health %>"
+            data-type="<%= m.type %>"
+            data-monitoring="<%= m.monitoring %>"
+            data-name="<%= m.name %>"
+            data-asset="<%= m.assetId %>"
+            data-location="<%= m.location %>"
+            data-description="<%= m.description %>"
+            data-dataset="<%= m.dataset %>"
+            data-last="<%= m.lastIso || '' %>"
+            data-score="<%= m.scoreSort %>"
+          >
+            <td><div class="machine-cell"><span class="thumb"><%= m.thumb %></span> <%= m.name %></div></td>
+            <td><%= m.assetId %></td>
+            <td><%= m.type %></td>
+            <td><%= m.location %></td>
+            <td><span class="badge badge-<%= m.healthClass %>"><%= m.health %></span></td>
+            <td><span class="badge badge-<%= m.monitoringClass %>"><%= m.monitoring %></span></td>
+            <td><%= m.lastData %></td>
+            <td>
+              <div class="menu">
+                <button class="btn btn-icon menu-trigger" type="button" aria-label="Actions" aria-expanded="false">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+                </button>
+                <div class="menu-panel" hidden>
+                  <a class="menu-item" href="/machines/<%= m.id %>">View</a>
+                  <button class="menu-item" type="button" data-edit-machine>Edit</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<nav class="pager" data-pager-for="#machine-table" aria-label="Machines pages"></nav>
+
+<div class="cards-view" id="machine-cards">
+  <% machines.forEach(function (m) { %>
+    <article
+      class="card machine-card"
+      data-id="<%= m.id %>"
+      data-search="<%= (m.name + ' ' + m.assetId).toLowerCase() %>"
+      data-health="<%= m.health %>"
+      data-type="<%= m.type %>"
+      data-monitoring="<%= m.monitoring %>"
+      data-name="<%= m.name %>"
+      data-asset="<%= m.assetId %>"
+      data-location="<%= m.location %>"
+      data-description="<%= m.description %>"
+      data-last="<%= m.lastIso || '' %>"
+      data-score="<%= m.scoreSort %>"
+    >
+      <div class="machine-card-top">
+        <div>
+          <h3><%= m.name %></h3>
+          <p class="muted"><%= m.assetId %> · <%= m.type %></p>
+        </div>
+        <div class="menu">
+          <button class="btn btn-icon menu-trigger" type="button" aria-label="Actions"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
+          <div class="menu-panel" hidden>
+            <a class="menu-item" href="/machines/<%= m.id %>">View</a>
+            <button class="menu-item" type="button" data-edit-machine>Edit</button>
+          </div>
+        </div>
+      </div>
+      <p><span class="badge badge-<%= m.healthClass %>"><%= m.health %></span></p>
+      <p class="muted"><%= m.location %></p>
+    </article>
+  <% }) %>
+</div>
+<nav class="pager" data-pager-for="#machine-cards" aria-label="Machine card pages"></nav>
+
+<div class="overlay" data-close></div>
+
+<div class="modal" id="add-machine">
+  <h3>Add machine</h3>
+  <form class="form-grid" id="add-machine-form" action="/machines" method="post" enctype="multipart/form-data">
+    <%- include('partials/csrf') %>
+    <div class="form-grid two">
+      <label>Machine name <input name="name" required maxlength="80" /></label>
+      <label>Asset ID <input name="assetId" required maxlength="40" data-asset-input /></label>
+    </div>
+    <p class="form-error" data-asset-error hidden>This Asset ID is already used</p>
+    <div class="form-grid two">
+      <label>Type <input name="type" required maxlength="40" value="Bearing" /></label>
+      <label>Location <input name="location" required maxlength="80" /></label>
+    </div>
+    <label>Description <textarea name="description" maxlength="500"></textarea></label>
+    <div class="dropzone" id="dataset-drop">
+      <input type="file" name="dataset" id="dataset-file" accept=".csv,.zip,.txt,text/plain,text/csv,application/zip" required />
+      <p>Drop a CSV, ZIP, or TXT file here, or choose one from your computer.</p>
+      <p class="muted">Maximum size 25 MB.</p>
+      <p class="muted" id="dataset-file-name">No file selected</p>
+    </div>
+    <div class="progress" id="upload-progress" hidden><span id="upload-bar"></span></div>
+    <p class="form-error" id="upload-error" hidden></p>
+    <div class="btn-row">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="edit-machine">
+  <h3>Edit machine</h3>
+  <form class="form-grid" id="edit-machine-form" method="post">
+    <%- include('partials/csrf') %>
+    <input type="hidden" name="returnTo" value="list" />
+    <div class="form-grid two">
+      <label>Machine name <input name="name" id="edit-name" required maxlength="80" /></label>
+      <label>Asset ID <input name="assetId" id="edit-asset" required maxlength="40" data-asset-input /></label>
+    </div>
+    <p class="form-error" data-asset-error hidden>This Asset ID is already used</p>
+    <div class="form-grid two">
+      <label>Type <input name="type" id="edit-type" required maxlength="40" /></label>
+      <label>Location <input name="location" id="edit-location" required maxlength="80" /></label>
+    </div>
+    <label>Description <textarea name="description" id="edit-description" maxlength="500"></textarea></label>
+    <div class="btn-row">
+      <button class="btn btn-primary" type="submit">Save changes</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+    </div>
+  </form>
+</div>
+
+<%- include('partials/app-close') %>

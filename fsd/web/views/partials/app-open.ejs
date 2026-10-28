@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %> — MaintIQ</title>
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/app.css?v=27" />
+  </head>
+  <body class="app-body">
+    <div class="app-shell" id="app-shell">
+      <div class="sidebar-scrim" data-sidebar-close></div>
+      <%- include('app-sidebar', { page, user, alertCount: typeof alertCount !== 'undefined' ? alertCount : 0, settingsSection: typeof settingsSection !== 'undefined' ? settingsSection : undefined }) %>
+      <div class="app-main">
+        <header class="app-topbar">
+          <button class="sidebar-trigger" type="button" data-sidebar-toggle aria-label="Toggle sidebar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 6h16M4 12h16M4 18h10" />
+            </svg>
+          </button>
+          <div class="topbar-title">
+            <h1><%= heading %></h1>
+            <% if (typeof kicker !== "undefined" && kicker) { %>
+              <div class="topbar-kicker"><%= kicker %></div>
+            <% } %>
+          </div>
+          <% if (page === 'analytics') { %>
+            <div class="topbar-actions">
+              <button class="btn" type="button" data-export-csv>Export CSV</button>
+              <button class="btn" type="button" data-download-chart>Download Chart</button>
+            </div>
+          <% } %>
+        </header>
+        <div class="app-content" id="app-content">
