@@ -41,25 +41,13 @@ async function migrateOwnershipIndexes(pool) {
 export async function getPool() {
   if (pool) return pool;
 
-  const bootstrap = await mysql.createConnection({
-    host: dbConfig.host,
-    port: dbConfig.port,
-    user: dbConfig.user,
-    password: dbConfig.password,
-    multipleStatements: true,
-  });
-
-  await bootstrap.query(
-    `CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
-  );
-  await bootstrap.end();
-
-  pool = mysql.createPool({
+    pool = mysql.createPool({
     host: dbConfig.host,
     port: dbConfig.port,
     user: dbConfig.user,
     password: dbConfig.password,
     database: dbConfig.database,
+    ssl: { rejectUnauthorized: true },
     waitForConnections: true,
     connectionLimit: 10,
   });
