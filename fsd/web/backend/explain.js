@@ -611,7 +611,7 @@ function fallbackExplanation(graph, machine) {
 
   return {
     title,
-    summary: `Evidence summary for ${title} on ${name} (LLM unavailable; values are from stored analytics only).`,
+    summary: `Evidence summary for ${title} on ${name}. The explanation service is unavailable at the moment — these values are from your saved analytics.`,
     observations: observations.slice(0, 6),
     interpretation: interpretation.slice(0, 4),
     limitations: [
