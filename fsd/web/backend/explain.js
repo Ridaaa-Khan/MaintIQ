@@ -72,7 +72,7 @@ function extractJson(text) {
   }
 }
 
-async function generateJson({ system, user, timeoutMs = 45000 } = {}) {
+async function generateJson({ system, user, timeoutMs = 12000 } = {}) {
   if (!llmConfig.apiKey) {
     throw llmError("The explanation service is not configured.", {
       status: 503,
@@ -81,10 +81,11 @@ async function generateJson({ system, user, timeoutMs = 45000 } = {}) {
     });
   }
 
-  const model = llmConfig.model || "gemini-3.8-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const preferred = llmConfig.model || "gemini-3.5-flash";
+  const modelCandidates = [...new Set([preferred, "gemini-3.5-flash"])];
 
-  const send = async () => {
+  const send = async (model) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -106,11 +107,13 @@ async function generateJson({ system, user, timeoutMs = 45000 } = {}) {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const message = payload.error?.message || `Gemini request failed (${response.status}).`;
-      console.error("Gemini explain error", response.status, String(message).slice(0, 400));
-      throw llmError("The explanation service is unavailable right now.", {
+      console.error("Gemini explain error", model, response.status, String(message).slice(0, 400));
+      const err = llmError("The explanation service is unavailable right now.", {
         status: response.status === 429 || response.status === 503 ? 503 : 502,
         retryable: response.status === 429 || response.status === 503 || response.status >= 500,
       });
+      err.httpStatus = response.status;
+      throw err;
     }
     const parts = payload.candidates?.[0]?.content?.parts || [];
     const text = parts
@@ -126,16 +129,18 @@ async function generateJson({ system, user, timeoutMs = 45000 } = {}) {
   };
 
   let lastError;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (const model of modelCandidates) {
     try {
-      return await send();
+      return await send(model);
     } catch (err) {
       lastError = err;
       if (err.name === "TimeoutError" || err.name === "AbortError") {
         lastError = llmError("The explanation timed out. Please try again.", { status: 504, retryable: true });
       }
-      if (lastError.code === "NO_KEY" || !lastError.retryable || attempt === 2) throw lastError;
-      await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
+      if (lastError.code === "NO_KEY") throw lastError;
+      // On overload, try the next candidate once; otherwise stop and let caller fall back.
+      if (lastError.httpStatus === 503 || lastError.httpStatus === 429) continue;
+      break;
     }
   }
   throw lastError;
@@ -501,6 +506,128 @@ function limitationExplanation(title, reason) {
   };
 }
 
+/** Evidence-only panel when Gemini is overloaded/unavailable — no invented claims. */
+function fallbackExplanation(graph, machine) {
+  const observations = [];
+  const interpretation = [];
+  const title = graph.title;
+  const name = machine?.name || machine?.assetId || "Selected machine";
+
+  if (graph.graphId === "vibration") {
+    const last = graph.latestWindow;
+    const early = graph.earlyLifeMean || {};
+    if (last) {
+      for (const key of graph.selectedFeatures || []) {
+        const now = last[key];
+        const base = early[key];
+        if (now == null) continue;
+        const evidence =
+          base == null
+            ? `Latest ${key}=${now} across ${graph.windowCount} windows.`
+            : `Latest ${key}=${now} vs early-life mean ${base} (${graph.windowCount} windows).`;
+        observations.push({
+          finding: `${key.toUpperCase()} in the latest window is ${now}.`,
+          evidence,
+          type: base != null && now > base ? "comparison" : "other",
+        });
+      }
+      if (early.rms != null && last.rms != null) {
+        interpretation.push(
+          last.rms > early.rms
+            ? "Latest RMS is above this run’s early-life mean. That is a reading change, not a confirmed fault."
+            : "Latest RMS is not above this run’s early-life mean."
+        );
+      }
+    }
+  } else if (graph.graphId === "anomalies") {
+    const stats = graph.statistics;
+    observations.push({
+      finding: `${graph.flaggedWindowCount} of ${graph.windowCount} windows are Isolation Forest flags.`,
+      evidence: `Train early-life mean ${graph.trainEarlyLifeMean}; run early-life mean ${graph.runEarlyLifeMean ?? "—"}; contamination ${graph.contamination}.`,
+      type: "threshold",
+    });
+    if (stats?.last) {
+      observations.push({
+        finding: `Latest anomaly score is ${stats.last.value}.`,
+        evidence: `Score at ${stats.last.t}; series max ${stats.max?.value ?? "—"}.`,
+        type: "peak",
+      });
+    }
+    interpretation.push(
+      "Flags mean the window looks unlike the early-life baseline, not that a bearing has failed."
+    );
+  } else if (graph.graphId === "failure") {
+    observations.push({
+      finding: `${graph.thresholdCrossingCount} windows meet or exceed threshold ${graph.threshold}.`,
+      evidence: `${graph.predictedRiskCount} windows have predicted_failure_within_24h = 1 of ${graph.windowCount} in range.`,
+      type: "threshold",
+    });
+    interpretation.push(
+      "This is a 24-hour horizon classifier output, not proof of physical failure."
+    );
+  } else if (graph.graphId === "frequency") {
+    for (const band of graph.bands || []) {
+      if (band.latest == null) continue;
+      observations.push({
+        finding: `${band.band} latest energy is ${band.latest}.`,
+        evidence: `Early-life mean ${band.earlyLifeMean ?? "—"}.`,
+        type: "comparison",
+      });
+    }
+    interpretation.push("Band energy shifts are spectral feature changes, not a root-cause label.");
+  } else if (graph.graphId === "faultfreq") {
+    const latest = graph.latest || {};
+    observations.push({
+      finding: `Latest BPFO=${latest.bpfo ?? "—"}, BPFI=${latest.bpfi ?? "—"}.`,
+      evidence: `Early-life BPFO=${graph.earlyLife?.bpfo ?? "—"}, BPFI=${graph.earlyLife?.bpfi ?? "—"}; also FTF=${latest.ftf ?? "—"}, BSF=${latest.bsf ?? "—"}.`,
+      type: "comparison",
+    });
+    interpretation.push("These are spectral magnitudes at 2000 RPM, not a fault diagnosis.");
+  } else if (graph.graphId === "performance") {
+    const test = graph.test || {};
+    observations.push({
+      finding: `Test precision=${test.precision ?? "—"}, recall=${test.recall ?? "—"}, F1=${test.f1 ?? "—"}.`,
+      evidence: `Threshold ${graph.threshold}; confusion tn=${graph.confusionTest?.tn ?? "—"}, fp=${graph.confusionTest?.fp ?? "—"}, fn=${graph.confusionTest?.fn ?? "—"}, tp=${graph.confusionTest?.tp ?? "—"}.`,
+      type: "other",
+    });
+    interpretation.push("These are held-out IMS Test 3 metrics, not a live machine diagnosis.");
+  } else if (graph.graphId === "rul") {
+    const test = graph.test || {};
+    observations.push({
+      finding: `Test last-24h MAE=${test.mae24h ?? "—"} h; last-72h MAE=${test.mae72h ?? "—"} h.`,
+      evidence: `Full-run test MAE=${test.maeFull ?? "—"} h (early-life dominated; not a headline).`,
+      type: "other",
+    });
+    interpretation.push("Prefer operational last-24h / last-72h MAE over full-run MAE.");
+  }
+
+  if (!observations.length) {
+    observations.push({
+      finding: `Stored evidence for ${title} on ${name} is limited in this view.`,
+      evidence: graph.metricDefinition || "No additional numeric fields were available.",
+      type: "other",
+    });
+  }
+
+  return {
+    title,
+    summary: `Evidence summary for ${title} on ${name} (LLM unavailable; values are from stored analytics only).`,
+    observations: observations.slice(0, 6),
+    interpretation: interpretation.slice(0, 4),
+    limitations: [
+      "The LLM explanation service was unavailable, so this panel lists stored graph evidence only.",
+      "Do not treat model flags or feature changes as a confirmed mechanical fault.",
+    ],
+    suggested_actions: [
+      {
+        action: "Retry Explain in a minute",
+        reason: "Gemini may recover after temporary high demand.",
+      },
+    ],
+    confidence: "low",
+  };
+}
+
 function asStringArray(value) {
   if (!Array.isArray(value)) return [];
   return value.map((item) => clip(item, 280)).filter(Boolean).slice(0, 6);
@@ -587,17 +714,31 @@ export async function explainGraph(body, userId) {
     dataSource: meta.source,
   };
 
-  const raw = await generateJson({
-    system: SYSTEM_PROMPT,
-    user: `Explain this MaintIQ analytics graph using only the supplied evidence.\n${JSON.stringify(packet)}`,
-  });
-  const explanation = validateExplanation(raw, graph.title);
-  if (!explanation) {
-    const err = new Error("The explanation service returned an incomplete response.");
-    err.status = 502;
-    err.public = true;
-    throw err;
+  try {
+    const raw = await generateJson({
+      system: SYSTEM_PROMPT,
+      user: `Explain this MaintIQ analytics graph using only the supplied evidence.\n${JSON.stringify(packet)}`,
+    });
+    const explanation = validateExplanation(raw, graph.title);
+    if (!explanation) {
+      const err = new Error("The explanation service returned an incomplete response.");
+      err.status = 502;
+      err.public = true;
+      err.retryable = true;
+      err.code = "LLM";
+      throw err;
+    }
+    explanation.title = graph.title;
+    return { ok: true, explanation };
+  } catch (err) {
+    // Client 4xx from fail() (unknown graph, missing machine) stay errors.
+    // Gemini overload/timeouts/network failures must still fill the panel.
+    if (err.public && Number(err.status) >= 400 && Number(err.status) < 500) throw err;
+    console.error("Explain falling back to evidence summary:", err.code || err.name, err.message);
+    return {
+      ok: true,
+      fallback: true,
+      explanation: fallbackExplanation(graph, machine),
+    };
   }
-  explanation.title = graph.title;
-  return { ok: true, explanation };
 }

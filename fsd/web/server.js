@@ -469,6 +469,15 @@ async function reportContext(req) {
   return buildReport(id, req.user.id);
 }
 
+function renderView(name, locals) {
+  return new Promise((resolve, reject) => {
+    app.render(name, locals, (err, html) => {
+      if (err) reject(err);
+      else resolve(html);
+    });
+  });
+}
+
 app.get("/reports/document", requireUser, async (req, res) => {
   const report = await reportContext(req);
   if (!report) return res.redirect("/reports");
@@ -491,6 +500,8 @@ app.get("/reports/pdf", requireUser, async (req, res) => {
   try {
     const puppeteer = (await import("puppeteer")).default;
     const origin = `http://127.0.0.1:${PORT}`;
+    const html = await renderView("report-document", { report, exportPdf: true });
+    const htmlWithBase = html.replace("<head>", `<head><base href="${origin}/">`);
     const chromePath = [
       process.env.PUPPETEER_EXECUTABLE_PATH,
       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -498,22 +509,12 @@ app.get("/reports/pdf", requireUser, async (req, res) => {
     ].find((candidate) => candidate && fs.existsSync(candidate));
     const browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
       ...(chromePath ? { executablePath: chromePath } : { channel: "chrome" }),
     });
     try {
       const page = await browser.newPage();
-      const cookie = req.headers.cookie;
-      if (cookie) {
-        await page.setExtraHTTPHeaders({ Cookie: cookie });
-      }
-      await page.goto(
-        `${origin}/reports/document?id=${encodeURIComponent(report.id)}&export=pdf`,
-        {
-          waitUntil: "networkidle0",
-          timeout: 60000,
-        }
-      );
+      await page.setContent(htmlWithBase, { waitUntil: "load", timeout: 45000 });
       await page.waitForFunction("window.REPORT_CHARTS_READY === true", { timeout: 20000 }).catch(() => {});
       await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -537,7 +538,7 @@ app.get("/reports/pdf", requireUser, async (req, res) => {
         "Content-Disposition",
         `attachment; filename="${asciiName}.pdf"; filename*=UTF-8''${utf8Name}`
       );
-      return res.send(pdf);
+      return res.send(Buffer.from(pdf));
     } finally {
       await browser.close();
     }

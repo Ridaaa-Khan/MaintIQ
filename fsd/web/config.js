@@ -37,42 +37,68 @@ function normalizePem(value) {
   return pem.replace(/\\n/g, "\n");
 }
 
+function loadMysqlCa() {
+  const caInline = String(process.env.MYSQL_SSL_CA || local.sslCa || "").trim();
+  if (caInline) {
+    const ca = normalizePem(caInline);
+    if (!ca.includes("BEGIN CERTIFICATE")) {
+      throw new Error(
+        "MYSQL_SSL_CA must be a PEM certificate (include -----BEGIN CERTIFICATE-----)."
+      );
+    }
+    return ca;
+  }
+
+  const caPath = String(process.env.MYSQL_SSL_CA_PATH || local.sslCaPath || "").trim();
+  if (!caPath) return "";
+
+  const resolved = path.isAbsolute(caPath) ? caPath : path.join(__dirname, caPath);
+  if (!existsSync(resolved)) {
+    throw new Error(`MYSQL_SSL_CA_PATH file not found: ${resolved}`);
+  }
+  return readFileSync(resolved, "utf8");
+}
+
 function resolveMysqlSsl(host) {
   const production = process.env.NODE_ENV === "production";
   const isLocalHost = ["127.0.0.1", "localhost", "::1"].includes(String(host).toLowerCase());
   const explicit = parseFlag(process.env.MYSQL_SSL ?? local.ssl);
 
-  // Explicit MYSQL_SSL wins. Otherwise: no SSL for local MySQL; SSL for remote
-  // (and always for production remotes such as Aiven on Render).
+  // Explicit MYSQL_SSL wins. Dev + local MySQL defaults to no TLS.
+  // Remote hosts (Aiven) default to TLS so certificate verification is used.
   const useSsl = explicit != null ? explicit : !isLocalHost;
 
-  if (!useSsl) return undefined;
-
-  const ssl = {
-    // Never disable verification — required for secure Aiven / production TLS.
-    rejectUnauthorized: true,
-  };
-
-  const caInline = String(process.env.MYSQL_SSL_CA || local.sslCa || "").trim();
-  const caPath = String(process.env.MYSQL_SSL_CA_PATH || local.sslCaPath || "").trim();
-
-  if (caInline) {
-    ssl.ca = normalizePem(caInline);
-  } else if (caPath) {
-    const resolved = path.isAbsolute(caPath) ? caPath : path.join(__dirname, caPath);
-    if (!existsSync(resolved)) {
-      throw new Error(`MYSQL_SSL_CA_PATH file not found: ${resolved}`);
+  if (!useSsl) {
+    if (production && !isLocalHost) {
+      throw new Error(
+        "MySQL SSL is required in production for remote hosts. Set MYSQL_SSL=1 and MYSQL_SSL_CA."
+      );
     }
-    ssl.ca = readFileSync(resolved, "utf8");
-  } else if (production && !isLocalHost) {
-    console.warn(
-      "MYSQL_SSL is enabled without MYSQL_SSL_CA / MYSQL_SSL_CA_PATH. " +
-        "Aiven MySQL requires the project CA PEM for certificate verification."
+    return undefined;
+  }
+
+  const ca = loadMysqlCa();
+  if (!ca) {
+    if (production) {
+      throw new Error(
+        "MYSQL_SSL_CA is required in production. Paste the Aiven project CA PEM " +
+          "(service Overview → Download CA certificate) into the MYSQL_SSL_CA env var. " +
+          "Do not set rejectUnauthorized=false."
+      );
+    }
+    throw new Error(
+      "MYSQL_SSL is enabled but MYSQL_SSL_CA is missing. " +
+        "Set MYSQL_SSL_CA to the Aiven CA PEM, or set MYSQL_SSL=0 for local MySQL without TLS."
     );
   }
 
-  // Optional hostname check (Aiven VERIFY_IDENTITY). Off by default for broader
-  // compatibility; set MYSQL_SSL_VERIFY_IDENTITY=1 on Render when desired.
+  const ssl = {
+    ca,
+    // Always verify the server certificate against the Aiven project CA.
+    rejectUnauthorized: true,
+  };
+
+  // Optional hostname check (Aiven VERIFY_IDENTITY).
   if (parseFlag(process.env.MYSQL_SSL_VERIFY_IDENTITY) === true) {
     ssl.verifyIdentity = true;
   }
@@ -111,7 +137,7 @@ if (!configuredSecret || configuredSecret === PLACEHOLDER_SECRET) {
 export const llmConfig = {
   provider: process.env.LLM_PROVIDER || "google",
   apiKey: String(process.env.LLM_API_KEY || "").trim(),
-  model: process.env.LLM_MODEL || "gemini-3.8-flash",
+  model: process.env.LLM_MODEL || "gemini-3.5-flash",
   baseUrl: process.env.LLM_BASE_URL || "https://generativelanguage.googleapis.com/v1beta",
 };
 
