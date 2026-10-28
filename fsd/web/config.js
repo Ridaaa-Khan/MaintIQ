@@ -1,6 +1,6 @@
 import "./load-env.js";
 import crypto from "crypto";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 
@@ -18,12 +18,77 @@ function pick(envValue, localValue, fallback = "") {
   return fallback;
 }
 
+function parseFlag(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["1", "true", "yes", "require", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off", "disable", "disabled"].includes(normalized)) return false;
+  return null;
+}
+
+/** Render/Aiven env vars often store PEM with literal \n sequences. */
+function normalizePem(value) {
+  let pem = String(value).trim();
+  if (
+    (pem.startsWith('"') && pem.endsWith('"')) ||
+    (pem.startsWith("'") && pem.endsWith("'"))
+  ) {
+    pem = pem.slice(1, -1);
+  }
+  return pem.replace(/\\n/g, "\n");
+}
+
+function resolveMysqlSsl(host) {
+  const production = process.env.NODE_ENV === "production";
+  const isLocalHost = ["127.0.0.1", "localhost", "::1"].includes(String(host).toLowerCase());
+  const explicit = parseFlag(process.env.MYSQL_SSL ?? local.ssl);
+
+  // Explicit MYSQL_SSL wins. Otherwise: no SSL for local MySQL; SSL for remote
+  // (and always for production remotes such as Aiven on Render).
+  const useSsl = explicit != null ? explicit : !isLocalHost;
+
+  if (!useSsl) return undefined;
+
+  const ssl = {
+    // Never disable verification — required for secure Aiven / production TLS.
+    rejectUnauthorized: true,
+  };
+
+  const caInline = String(process.env.MYSQL_SSL_CA || local.sslCa || "").trim();
+  const caPath = String(process.env.MYSQL_SSL_CA_PATH || local.sslCaPath || "").trim();
+
+  if (caInline) {
+    ssl.ca = normalizePem(caInline);
+  } else if (caPath) {
+    const resolved = path.isAbsolute(caPath) ? caPath : path.join(__dirname, caPath);
+    if (!existsSync(resolved)) {
+      throw new Error(`MYSQL_SSL_CA_PATH file not found: ${resolved}`);
+    }
+    ssl.ca = readFileSync(resolved, "utf8");
+  } else if (production && !isLocalHost) {
+    console.warn(
+      "MYSQL_SSL is enabled without MYSQL_SSL_CA / MYSQL_SSL_CA_PATH. " +
+        "Aiven MySQL requires the project CA PEM for certificate verification."
+    );
+  }
+
+  // Optional hostname check (Aiven VERIFY_IDENTITY). Off by default for broader
+  // compatibility; set MYSQL_SSL_VERIFY_IDENTITY=1 on Render when desired.
+  if (parseFlag(process.env.MYSQL_SSL_VERIFY_IDENTITY) === true) {
+    ssl.verifyIdentity = true;
+  }
+
+  return ssl;
+}
+
+const host = pick(process.env.MYSQL_HOST, local.host, "127.0.0.1");
+
 export const dbConfig = {
-  host: pick(process.env.MYSQL_HOST, local.host, "127.0.0.1"),
+  host,
   port: Number(pick(process.env.MYSQL_PORT, local.port, 3306)),
   user: pick(process.env.MYSQL_USER, local.user, "root"),
   password: pick(process.env.MYSQL_PASSWORD, local.password, ""),
   database: pick(process.env.MYSQL_DATABASE, local.database, "maintiq"),
+  ssl: resolveMysqlSsl(host),
 };
 
 const PLACEHOLDER_SECRET = "maintiq-dev-session-secret-change-me";

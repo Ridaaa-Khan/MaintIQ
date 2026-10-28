@@ -117,7 +117,7 @@ async function requireUser(req, res, next) {
     return next();
   } catch (err) {
     console.error(err);
-    return res.status(500).send("Server error. Check MySQL connection.");
+    return res.status(500).send("Server error. Please try again.");
   }
 }
 
@@ -214,7 +214,7 @@ app.post("/signup", async (req, res) => {
     }
     console.error(err);
     return res.status(500).render("signup", {
-      errors: ["Could not create account. Check MySQL and try again."],
+      errors: ["An error occurred. Please try again in a little while."],
       values: {
         firstName: checked.values.firstName,
         lastName: checked.values.lastName,
@@ -262,7 +262,7 @@ app.post("/signin", async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).render("signin", {
-      error: "Could not sign in. Check MySQL and try again.",
+      error: "An error occurred. Please try again in a little while.",
       values: { email: checked.values.email },
     });
   }

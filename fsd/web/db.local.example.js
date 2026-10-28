@@ -5,4 +5,7 @@ export default {
   user: "root",
   password: "YOUR_MYSQL_PASSWORD",
   database: "maintiq",
+  // Local default: no SSL. For Aiven locally, set ssl: true and sslCa / sslCaPath.
+  // ssl: true,
+  // sslCaPath: "./certs/aiven-ca.pem",
 };
