@@ -10,7 +10,9 @@ import {
   csrfTokensMatch,
   destroyAllSessions,
   destroySession,
+  ensureTesterAccount,
   hashPassword,
+  isTesterEmail,
   loadSession,
   readCsrfToken,
   validatePasswordChange,
@@ -36,6 +38,7 @@ import {
   getMachineRecord,
   listMachineRecords,
   machineFilterOptions,
+  setMachineMonitoring,
   updateMachine,
   updateMachineNotes,
 } from "./backend/machines.js";
@@ -52,7 +55,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "32kb" }));
 
-const CSRF_SKIP = new Set(["/signin", "/signup"]);
+const CSRF_SKIP = new Set(["/signin", "/signup", "/tester"]);
 
 app.use(async (req, res, next) => {
   try {
@@ -107,6 +110,7 @@ async function requireUser(req, res, next) {
       return res.redirect("/signin");
     }
     req.user = user;
+    res.locals.isTester = isTesterEmail(user.email);
     try {
       await ensureUserWorkspace(user.id);
       res.locals.alertCount = await countOpenAlerts(user.id);
@@ -130,6 +134,7 @@ async function requireApiUser(req, res, next) {
       return res.status(401).json({ ok: false, error: "Sign in required." });
     }
     req.user = user;
+    res.locals.isTester = isTesterEmail(user.email);
     try {
       await ensureUserWorkspace(user.id);
     } catch (workspaceErr) {
@@ -268,6 +273,21 @@ app.post("/signin", async (req, res) => {
   }
 });
 
+app.post("/tester", async (req, res) => {
+  if (!consumeAuthAttempt(req)) {
+    return res.status(429).render("landing");
+  }
+  try {
+    const userId = await ensureTesterAccount();
+    await destroyAllSessions(userId);
+    await createSession(req, res, userId);
+    return res.redirect("/dashboard");
+  } catch (err) {
+    console.error(err);
+    return res.status(500).render("landing");
+  }
+});
+
 app.get("/dashboard", requireUser, async (req, res) => {
   const dashboard = await getDashboardPage(req.user.id);
   res.render("dashboard", { user: req.user, dashboard });
@@ -304,6 +324,11 @@ app.post("/machines", requireApiUser, (req, res) => {
       return res.status(500).json({ ok: false, errors: ["Could not save the machine."] });
     }
   });
+});
+
+app.post("/machines/:id/monitoring", requireApiUser, async (req, res) => {
+  const result = await setMachineMonitoring(req.params.id, String(req.body?.status || ""), req.user.id);
+  return res.status(result.ok ? 200 : 400).json(result);
 });
 
 app.post("/machines/:id/notes", requireUser, async (req, res) => {
@@ -701,6 +726,11 @@ app.post("/signout", async (req, res) => {
 async function start() {
   try {
     await getPool();
+    try {
+      await ensureTesterAccount();
+    } catch (testerErr) {
+      console.error(testerErr);
+    }
     console.log("MySQL ready (database: maintiq, table: users)");
   } catch (err) {
     console.error("MySQL connection failed — start MySQL and check config.js / env vars.");

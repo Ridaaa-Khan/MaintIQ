@@ -225,12 +225,42 @@
     return { from: start.toISOString(), to: machine.end };
   };
 
+  const todayInput = () => new Date().toISOString().slice(0, 10);
+
+  const applyDateBounds = (machineId) => {
+    const machine = data.machines[machineId];
+    const minDate = toInputDate(machine?.start || "2000-01-01T00:00:00.000Z") || "2000-01-01";
+    const today = todayInput();
+    if (fromEl) {
+      fromEl.min = minDate;
+      fromEl.max = today;
+    }
+    if (toEl) {
+      toEl.min = minDate;
+      toEl.max = today;
+    }
+  };
+
+  const clampDateValue = (el) => {
+    if (!el) return;
+    if (el.validity?.badInput) {
+      el.value = el.min || "";
+      return;
+    }
+    if (!el.value) return;
+    if (el.min && el.value < el.min) el.value = el.min;
+    if (el.max && el.value > el.max) el.value = el.max;
+  };
+
   const writeDatesToForm = (machineId) => {
     const machine = data.machines[machineId];
     if (!machine || !fromEl || !toEl) return;
+    applyDateBounds(machineId);
     const range = defaultRange(machine);
     fromEl.value = toInputDate(range.from);
     toEl.value = toInputDate(range.to);
+    clampDateValue(fromEl);
+    clampDateValue(toEl);
   };
 
   const commitForm = () => {
@@ -598,14 +628,29 @@
     writeDatesToForm(machineEl.value);
   });
 
+  [fromEl, toEl].forEach((el) => {
+    el?.addEventListener("change", () => clampDateValue(el));
+    el?.addEventListener("blur", () => clampDateValue(el));
+    el?.addEventListener("input", () => {
+      if (el.validity?.badInput) return;
+      clampDateValue(el);
+    });
+  });
+
   byId("analytics-filters")?.addEventListener("submit", (event) => {
     event.preventDefault();
+    clampDateValue(fromEl);
+    clampDateValue(toEl);
+    if (fromEl?.value && toEl?.value && fromEl.value > toEl.value) toEl.value = fromEl.value;
     commitForm();
     render();
     collapseFilters();
   });
 
   byId("analytics-apply")?.addEventListener("click", () => {
+    clampDateValue(fromEl);
+    clampDateValue(toEl);
+    if (fromEl?.value && toEl?.value && fromEl.value > toEl.value) toEl.value = fromEl.value;
     commitForm();
     render();
     collapseFilters();

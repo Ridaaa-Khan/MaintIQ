@@ -33,7 +33,7 @@
 
 <div class="run-list" id="run-list">
   <% if (!runs.length) { %>
-    <article class="card"><p class="muted">No historical scoring runs are loaded.</p></article>
+    <article class="card"><p class="muted">No monitoring runs yet.</p></article>
   <% } %>
   <% runs.forEach(function (run) { %>
     <article
@@ -62,6 +62,7 @@
       data-fail="<%= run.failProb || '' %>"
       data-rul="<%= run.rulHours == null ? '' : run.rulHours %>"
       data-health="<%= run.health || '' %>"
+      data-monitoring="<%= run.monitoring || 'Active' %>"
       data-error="<%= run.error %>"
     >
       <div class="run-card-head">
@@ -89,10 +90,13 @@
       <div class="run-card-foot">
         <p class="muted">Scored <%= run.periodLabel %> · Updated <%= run.updated %></p>
         <div class="btn-row">
-          <button class="btn" type="button" data-inspect-run>Inspect</button>
+          <button class="btn" type="button" data-toggle-monitoring>
+            <%= run.monitoring === "Inactive" ? "Continue Monitoring" : "Stop Monitoring" %>
+          </button>
           <div class="menu">
             <button class="btn btn-icon menu-trigger" type="button" aria-label="More"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
             <div class="menu-panel" hidden>
+              <button class="menu-item" type="button" data-inspect-run>Inspect</button>
               <a class="menu-item" href="/machines/<%= run.machineId %>">View machine</a>
               <a class="menu-item" href="/analytics?machine=<%= encodeURIComponent(run.machineId) %>">Open analytics</a>
             </div>

@@ -25,6 +25,22 @@ async function addUniqueIfMissing(pool, table, index, columns) {
   await pool.query(`ALTER TABLE \`${table}\` ADD UNIQUE KEY \`${index}\` (${columns})`);
 }
 
+async function columnExists(pool, table, column) {
+  const [rows] = await pool.query(
+    `SELECT COLUMN_NAME
+     FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?
+     LIMIT 1`,
+    [table, column]
+  );
+  return Boolean(rows.length);
+}
+
+async function addColumnIfMissing(pool, table, column, ddl) {
+  if (await columnExists(pool, table, column)) return;
+  await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN ${ddl}`);
+}
+
 async function migrateOwnershipIndexes(pool) {
   await dropIndexIfExists(pool, "machines", "uq_machines_public_id");
   await dropIndexIfExists(pool, "machines", "uq_machines_asset_id");
@@ -206,6 +222,12 @@ export async function getPool() {
     `);
 
     await migrateOwnershipIndexes(next);
+    await addColumnIfMissing(
+      next,
+      "machines",
+      "monitoring_status",
+      "monitoring_status ENUM('Active','Inactive') NULL AFTER last_action"
+    );
     pool = next;
     return pool;
   } catch (err) {

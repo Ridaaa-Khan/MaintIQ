@@ -1,4 +1,5 @@
 import { getPool } from "../db.js";
+import { isTesterUser } from "../auth.js";
 import { listMonitoringRuns, getMachine } from "../lib/ims-data.js";
 import { syncImsMachines } from "./machines.js";
 
@@ -20,6 +21,7 @@ function fmtShort(value) {
 export async function syncImsRuns(userId) {
   const ownerId = Number(userId);
   if (!ownerId) return;
+  if (!(await isTesterUser(ownerId))) return;
   if (syncedOwners.has(ownerId)) return;
   await syncImsMachines(ownerId);
   const pool = await getPool();
@@ -64,16 +66,23 @@ export async function listRunRecords(userId) {
   if (!ownerId) return [];
   await syncImsRuns(ownerId);
   const pool = await getPool();
+  const tester = await isTesterUser(ownerId);
   const [rows] = await pool.query(
-    `SELECT r.*, m.public_id, m.name, m.asset_id, m.machine_type, m.test_id, m.bearing_id, m.notes
-     FROM analysis_runs r
-     JOIN machines m ON m.id = r.machine_id
-     WHERE m.created_by = ?
-     ORDER BY r.updated_at DESC, r.id DESC`,
+    tester
+      ? `SELECT r.*, m.public_id, m.name, m.asset_id, m.machine_type, m.test_id, m.bearing_id, m.notes, m.monitoring_status
+         FROM analysis_runs r
+         JOIN machines m ON m.id = r.machine_id
+         WHERE m.created_by = ?
+         ORDER BY r.updated_at DESC, r.id DESC`
+      : `SELECT r.*, m.public_id, m.name, m.asset_id, m.machine_type, m.test_id, m.bearing_id, m.notes, m.monitoring_status
+         FROM analysis_runs r
+         JOIN machines m ON m.id = r.machine_id
+         WHERE m.created_by = ? AND m.source <> 'ims'
+         ORDER BY r.updated_at DESC, r.id DESC`,
     [ownerId]
   );
   return rows.map((row) => {
-    const scored = getMachine(row.public_id);
+    const scored = tester ? getMachine(row.public_id) : null;
     const updatedIso = row.updated_at ? new Date(row.updated_at).toISOString() : "";
     const year = updatedIso ? updatedIso.slice(0, 4) : "";
     return {
@@ -104,6 +113,7 @@ export async function listRunRecords(userId) {
       rulHours: scored?.rulHours ?? null,
       documentedDamage: scored?.documentedDamage ?? null,
       health: scored?.health ?? null,
+      monitoring: row.monitoring_status === "Inactive" ? "Inactive" : row.monitoring_status === "Active" ? "Active" : scored?.monitoring || "Active",
     };
   });
 }

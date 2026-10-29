@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { getPool } from "../db.js";
+import { isTesterUser } from "../auth.js";
 import { assembleMachineReport } from "../lib/report-builder.js";
 import { getMachineRecord, listMachineRecords } from "./machines.js";
 import { listAlertRecords } from "./alerts.js";
@@ -48,6 +49,7 @@ export async function listReports(userId) {
   if (!ownerId) return [];
   try {
     const pool = await getPool();
+    const tester = await isTesterUser(ownerId);
     const [rows] = await pool.query(
       `SELECT r.public_id, r.title, r.report_type, r.period_label, r.dataset_id, r.run_id, r.created_at,
               m.public_id AS machine_public_id, m.name AS machine_name, m.asset_id,
@@ -56,8 +58,9 @@ export async function listReports(userId) {
        JOIN machines m ON m.id = r.machine_id
        LEFT JOIN users u ON u.id = r.created_by
        WHERE r.created_by = ? AND m.created_by = ?
+         AND (? = 1 OR m.source <> 'ims')
        ORDER BY r.created_at DESC, r.id DESC`,
-      [ownerId, ownerId]
+      [ownerId, ownerId, tester ? 1 : 0]
     );
     return rows.map(mapListRow);
   } catch (err) {
@@ -71,13 +74,15 @@ export async function getStoredReport(publicId, userId) {
   if (!ownerId) return null;
   try {
     const pool = await getPool();
+    const tester = await isTesterUser(ownerId);
     const [rows] = await pool.query(
       `SELECT r.payload_json
        FROM generated_reports r
        JOIN machines m ON m.id = r.machine_id
        WHERE r.public_id = ? AND r.created_by = ? AND m.created_by = ?
+         AND (? = 1 OR m.source <> 'ims')
        LIMIT 1`,
-      [String(publicId || ""), ownerId, ownerId]
+      [String(publicId || ""), ownerId, ownerId, tester ? 1 : 0]
     );
     if (!rows.length) return null;
     return JSON.parse(rows[0].payload_json);
@@ -168,11 +173,13 @@ export async function deleteGeneratedReport(publicId, userId) {
   if (!ownerId) return false;
   try {
     const pool = await getPool();
+    const tester = await isTesterUser(ownerId);
     const [result] = await pool.query(
       `DELETE r FROM generated_reports r
        JOIN machines m ON m.id = r.machine_id
-       WHERE r.public_id = ? AND r.created_by = ? AND m.created_by = ?`,
-      [String(publicId || ""), ownerId, ownerId]
+       WHERE r.public_id = ? AND r.created_by = ? AND m.created_by = ?
+         AND (? = 1 OR m.source <> 'ims')`,
+      [String(publicId || ""), ownerId, ownerId, tester ? 1 : 0]
     );
     return Boolean(result.affectedRows);
   } catch (err) {

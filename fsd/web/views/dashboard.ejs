@@ -66,7 +66,7 @@
         </thead>
         <tbody>
           <% if (!dashboard.recentAlerts.length) { %>
-            <tr><td colspan="5" class="muted">No model flags in the stored IMS scores.</td></tr>
+            <tr><td colspan="5" class="muted">No alerts yet.</td></tr>
           <% } %>
           <% dashboard.recentAlerts.forEach(function (alert) { %>
             <tr>
@@ -86,7 +86,7 @@
     <h3 class="card-title">Machines requiring attention</h3>
     <div class="list">
       <% if (!dashboard.attentionList.length) { %>
-        <div class="list-item"><div class="muted">All scored bearings are healthy.</div></div>
+        <div class="list-item"><div class="muted">No machines need attention.</div></div>
       <% } %>
       <% dashboard.attentionList.forEach(function (item) { %>
         <div class="list-item">
@@ -103,6 +103,9 @@
   <article class="card">
     <h3 class="card-title">Recent activity</h3>
     <div class="list">
+      <% if (!dashboard.activity.length) { %>
+        <div class="list-item"><div class="muted">No recent activity.</div></div>
+      <% } %>
       <% dashboard.activity.forEach(function (item) { %>
         <div class="list-item">
           <div>

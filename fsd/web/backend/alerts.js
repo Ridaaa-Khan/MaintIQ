@@ -1,4 +1,5 @@
 import { getPool } from "../db.js";
+import { isTesterUser } from "../auth.js";
 import { listAlerts as listScoredAlerts } from "../lib/ims-data.js";
 import { syncImsMachines } from "./machines.js";
 
@@ -24,6 +25,7 @@ function fmtShort(value) {
 export async function syncImsAlerts(userId) {
   const ownerId = Number(userId);
   if (!ownerId) return;
+  if (!(await isTesterUser(ownerId))) return;
   if (syncedOwners.has(ownerId)) return;
   await syncImsMachines(ownerId);
   const pool = await getPool();
@@ -62,12 +64,19 @@ export async function listAlertRecords(userId) {
   if (!ownerId) return [];
   await syncImsAlerts(ownerId);
   const pool = await getPool();
+  const tester = await isTesterUser(ownerId);
   const [rows] = await pool.query(
-    `SELECT a.*, m.public_id, m.name AS machine_name, m.asset_id
-     FROM alerts a
-     JOIN machines m ON m.id = a.machine_id
-     WHERE m.created_by = ?
-     ORDER BY a.occurred_at DESC, a.id DESC`,
+    tester
+      ? `SELECT a.*, m.public_id, m.name AS machine_name, m.asset_id
+         FROM alerts a
+         JOIN machines m ON m.id = a.machine_id
+         WHERE m.created_by = ?
+         ORDER BY a.occurred_at DESC, a.id DESC`
+      : `SELECT a.*, m.public_id, m.name AS machine_name, m.asset_id
+         FROM alerts a
+         JOIN machines m ON m.id = a.machine_id
+         WHERE m.created_by = ? AND m.source <> 'ims'
+         ORDER BY a.occurred_at DESC, a.id DESC`,
     [ownerId]
   );
   return rows.map((row) => ({
@@ -106,11 +115,17 @@ export async function countOpenAlerts(userId) {
   if (!ownerId) return 0;
   await syncImsAlerts(ownerId);
   const pool = await getPool();
+  const tester = await isTesterUser(ownerId);
   const [rows] = await pool.query(
-    `SELECT COUNT(*) AS n
-     FROM alerts a
-     JOIN machines m ON m.id = a.machine_id
-     WHERE m.created_by = ? AND a.status <> 'Resolved'`,
+    tester
+      ? `SELECT COUNT(*) AS n
+         FROM alerts a
+         JOIN machines m ON m.id = a.machine_id
+         WHERE m.created_by = ? AND a.status <> 'Resolved'`
+      : `SELECT COUNT(*) AS n
+         FROM alerts a
+         JOIN machines m ON m.id = a.machine_id
+         WHERE m.created_by = ? AND a.status <> 'Resolved' AND m.source <> 'ims'`,
     [ownerId]
   );
   return Number(rows[0].n);

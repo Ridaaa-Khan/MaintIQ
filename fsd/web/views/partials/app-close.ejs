@@ -2,13 +2,17 @@
       </div>
     </div>
     <script src="/js/chart.umd.min.js?v=4.4.1"></script>
-    <script src="/js/app.js?v=22"></script>
+    <script src="/js/app.js?v=23"></script>
     <% if (typeof page !== 'undefined' && page === 'analytics') { %>
-      <script src="/js/analytics-data.js?v=2"></script>
-      <script src="/js/charts.js?v=13"></script>
+      <% if (typeof isTester !== 'undefined' && isTester) { %>
+        <script src="/js/analytics-data.js?v=2"></script>
+      <% } %>
+      <script src="/js/charts.js?v=14"></script>
     <% } else if (typeof page !== 'undefined' && (page === 'dashboard' || page === 'alerts')) { %>
-      <script src="/js/analytics-data.js?v=2"></script>
-      <script src="/js/charts.js?v=13"></script>
+      <% if (typeof isTester !== 'undefined' && isTester) { %>
+        <script src="/js/analytics-data.js?v=2"></script>
+      <% } %>
+      <script src="/js/charts.js?v=14"></script>
     <% } %>
   </body>
 </html>

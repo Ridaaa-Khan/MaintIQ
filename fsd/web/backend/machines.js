@@ -3,6 +3,7 @@ import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
 import { getPool } from "../db.js";
+import { isTesterUser } from "../auth.js";
 import { getMachine as getScoredMachine, listMachines as listScoredMachines } from "../lib/ims-data.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -78,6 +79,17 @@ function blankMachine(row) {
   };
 }
 
+function withMonitoring(machine, row) {
+  const stored = row?.monitoring_status;
+  if (stored === "Inactive") {
+    return { ...machine, monitoring: "Inactive", monitoringClass: "none" };
+  }
+  if (stored === "Active") {
+    return { ...machine, monitoring: "Active", monitoringClass: "active" };
+  }
+  return machine;
+}
+
 function overlayProfile(scored, row) {
   if (!row) return scored;
   return {
@@ -110,6 +122,7 @@ async function recordActivity(pool, machineId, userId, action, summary) {
 export async function syncImsMachines(userId) {
   const ownerId = Number(userId);
   if (!ownerId) return;
+  if (!(await isTesterUser(ownerId))) return;
   if (catalogReady.has(ownerId)) return;
   const pool = await getPool();
   const scored = listScoredMachines();
@@ -151,6 +164,7 @@ export async function syncImsMachines(userId) {
 export async function ensureUserWorkspace(userId) {
   const ownerId = Number(userId);
   if (!ownerId) return;
+  if (!(await isTesterUser(ownerId))) return;
   await syncImsMachines(ownerId);
   const { syncImsAlerts } = await import("./alerts.js");
   const { syncImsRuns } = await import("./monitoring.js");
@@ -159,12 +173,19 @@ export async function ensureUserWorkspace(userId) {
 }
 
 async function openAlertCounts(pool, userId) {
+  const tester = await isTesterUser(userId);
   const [rows] = await pool.query(
-    `SELECT m.public_id AS publicId, COUNT(a.id) AS n
-     FROM machines m
-     LEFT JOIN alerts a ON a.machine_id = m.id AND a.status <> 'Resolved'
-     WHERE m.created_by = ?
-     GROUP BY m.public_id`,
+    tester
+      ? `SELECT m.public_id AS publicId, COUNT(a.id) AS n
+         FROM machines m
+         LEFT JOIN alerts a ON a.machine_id = m.id AND a.status <> 'Resolved'
+         WHERE m.created_by = ?
+         GROUP BY m.public_id`
+      : `SELECT m.public_id AS publicId, COUNT(a.id) AS n
+         FROM machines m
+         LEFT JOIN alerts a ON a.machine_id = m.id AND a.status <> 'Resolved'
+         WHERE m.created_by = ? AND m.source <> 'ims'
+         GROUP BY m.public_id`,
     [userId]
   );
   return new Map(rows.map((row) => [row.publicId, Number(row.n)]));
@@ -181,16 +202,19 @@ export async function listMachineRecords(userId) {
   if (!ownerId) return [];
   await ensureUserWorkspace(ownerId);
   const pool = await getPool();
+  const tester = await isTesterUser(ownerId);
   const [rows] = await pool.query(
-    "SELECT * FROM machines WHERE created_by = ? ORDER BY source DESC, test_id, bearing_id, asset_id",
+    tester
+      ? "SELECT * FROM machines WHERE created_by = ? ORDER BY source DESC, test_id, bearing_id, asset_id"
+      : "SELECT * FROM machines WHERE created_by = ? AND source <> 'ims' ORDER BY source DESC, test_id, bearing_id, asset_id",
     [ownerId]
   );
   const counts = await openAlertCounts(pool, ownerId);
   const testOrder = { "1st_test": 1, "2nd_test": 2, "3rd_test": 3 };
   const machines = rows.map((row) => {
-    const scored = getScoredMachine(row.public_id);
+    const scored = tester ? getScoredMachine(row.public_id) : null;
     const merged = scored ? overlayProfile(scored, row) : blankMachine(row);
-    return withAlertCount(merged, counts);
+    return withAlertCount(withMonitoring(merged, row), counts);
   });
   machines.sort((a, b) => {
     const ta = testOrder[a.testId] || 99;
@@ -337,6 +361,27 @@ export async function updateMachineNotes(publicId, notes, userId) {
   ]);
   await recordActivity(pool, rows[0].id, userId, "note", "Updated notes.");
   return { ok: true, errors: [], notes: text };
+}
+
+export async function setMachineMonitoring(publicId, status, userId) {
+  const next = status === "Inactive" ? "Inactive" : status === "Active" ? "Active" : "";
+  if (!next) return { ok: false, error: "Invalid monitoring status." };
+  const ownerId = Number(userId);
+  if (!ownerId) return { ok: false, error: "Machine not found." };
+  const pool = await getPool();
+  const tester = await isTesterUser(ownerId);
+  const [result] = await pool.query(
+    tester
+      ? "UPDATE machines SET monitoring_status = ?, updated_by = ? WHERE public_id = ? AND created_by = ?"
+      : "UPDATE machines SET monitoring_status = ?, updated_by = ? WHERE public_id = ? AND created_by = ? AND source <> 'ims'",
+    [next, ownerId, publicId, ownerId]
+  );
+  if (!result.affectedRows) return { ok: false, error: "Machine not found." };
+  return {
+    ok: true,
+    monitoring: next,
+    monitoringClass: next === "Active" ? "active" : "none",
+  };
 }
 
 function pythonCommand() {

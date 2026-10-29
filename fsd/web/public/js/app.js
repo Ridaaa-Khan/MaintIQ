@@ -968,6 +968,34 @@
         return;
       }
 
+      const monitorBtn = event.target.closest("[data-toggle-monitoring]");
+      if (monitorBtn) {
+        event.preventDefault();
+        const card = monitorBtn.closest(".run-card");
+        const machineId = card?.dataset.machineId;
+        if (!machineId) return;
+        const next = card.dataset.monitoring === "Inactive" ? "Active" : "Inactive";
+        fetch(`/machines/${encodeURIComponent(machineId)}/monitoring`, {
+          method: "POST",
+          headers: csrfHeaders({ "Content-Type": "application/json", Accept: "application/json" }),
+          body: JSON.stringify({ status: next }),
+        })
+          .then((response) => response.json().catch(() => ({})))
+          .then((payload) => {
+            if (!payload?.ok) return;
+            runList.querySelectorAll(".run-card").forEach((item) => {
+              if (item.dataset.machineId !== machineId) return;
+              item.dataset.monitoring = payload.monitoring;
+              const toggle = item.querySelector("[data-toggle-monitoring]");
+              if (toggle) {
+                toggle.textContent =
+                  payload.monitoring === "Inactive" ? "Continue Monitoring" : "Stop Monitoring";
+              }
+            });
+            closeMenus();
+          })
+          .catch(() => {});
+      }
     });
 
     applyRunFilters();

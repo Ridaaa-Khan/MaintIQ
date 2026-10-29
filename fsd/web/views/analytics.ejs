@@ -5,6 +5,7 @@
     <h2>Historical IMS behaviour</h2>
     <p>Explore historical vibration trends, anomaly patterns, failure predictions, and frequency-domain features across selected time periods.</p>
   </div>
+  <% if (machines.length) { %>
   <div class="analytics-filters-wrap">
     <button class="btn" type="button" id="analytics-filters-toggle" aria-expanded="false" aria-controls="analytics-filters-panel">Filters</button>
     <div class="analytics-filters-panel card" id="analytics-filters-panel" hidden>
@@ -17,10 +18,10 @@
           </select>
         </label>
         <label>From
-          <input type="date" id="analytics-from" aria-label="From date" />
+          <input type="date" id="analytics-from" aria-label="From date" min="2000-01-01" max="<%= new Date().toISOString().slice(0, 10) %>" />
         </label>
         <label>To
-          <input type="date" id="analytics-to" aria-label="To date" />
+          <input type="date" id="analytics-to" aria-label="To date" min="2000-01-01" max="<%= new Date().toISOString().slice(0, 10) %>" />
         </label>
         <label>Processed features
           <select class="select" id="analytics-features" aria-label="Processed features">
@@ -37,8 +38,12 @@
       </form>
     </div>
   </div>
+  <% } %>
 </div>
 
+<% if (!machines.length) { %>
+  <article class="card"><p class="muted">No analytics yet.</p></article>
+<% } else { %>
 <div data-tabs id="analytics-tabs">
   <div class="tabs">
     <button class="tab is-active" type="button" data-tab="vibration">Vibration</button>
@@ -205,5 +210,6 @@
     </article>
   </section>
 </div>
+<% } %>
 
 <%- include('partials/app-close', { page: 'analytics' }) %>

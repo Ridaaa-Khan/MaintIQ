@@ -11,6 +11,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SPECIAL_RE = /[^A-Za-z0-9]/;
 const SESSION_COOKIE = "maintiq_session";
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+export const TESTER_EMAIL = "tester@gmail.com";
+const testerIdCache = new Map();
 
 function scryptAsync(password, salt) {
   return new Promise((resolve, reject) => {
@@ -19,6 +21,43 @@ function scryptAsync(password, salt) {
       else resolve(key);
     });
   });
+}
+
+export function isTesterEmail(email) {
+  return String(email || "").trim().toLowerCase() === TESTER_EMAIL;
+}
+
+export async function isTesterUser(userId) {
+  const id = Number(userId);
+  if (!id) return false;
+  if (testerIdCache.has(id)) return testerIdCache.get(id);
+  const pool = await getPool();
+  const [rows] = await pool.query("SELECT email FROM users WHERE id = ? LIMIT 1", [id]);
+  const ok = isTesterEmail(rows[0]?.email);
+  testerIdCache.set(id, ok);
+  return ok;
+}
+
+export async function ensureTesterAccount() {
+  const pool = await getPool();
+  const [rows] = await pool.query("SELECT id FROM users WHERE email = ? LIMIT 1", [TESTER_EMAIL]);
+  if (rows[0]) {
+    testerIdCache.set(rows[0].id, true);
+    await pool.query("UPDATE users SET first_name = ?, last_name = ? WHERE id = ?", [
+      "Tester",
+      "",
+      rows[0].id,
+    ]);
+    return rows[0].id;
+  }
+  const passwordHash = await hashPassword(`${crypto.randomBytes(18).toString("hex")}Aa1!`);
+  const [result] = await pool.query(
+    `INSERT INTO users (first_name, last_name, email, phone, password_hash)
+     VALUES (?, ?, ?, NULL, ?)`,
+    ["Tester", "", TESTER_EMAIL, passwordHash]
+  );
+  testerIdCache.set(result.insertId, true);
+  return result.insertId;
 }
 
 export async function hashPassword(password) {
