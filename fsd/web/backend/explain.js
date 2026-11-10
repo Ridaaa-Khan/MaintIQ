@@ -161,7 +161,7 @@ const FEATURE_KEYS = new Set(["rms", "peak", "kurtosis", "crest", "bpfo", "bpfi"
 const OBSERVATION_TYPES = new Set(["trend", "peak", "comparison", "threshold", "pattern", "other"]);
 const CONFIDENCE = new Set(["low", "moderate", "high"]);
 
-const SYSTEM_PROMPT = `You are MaintIQ's Analytics Explanation Assistant. Your purpose is to explain industrial equipment analytics graphs using the actual graph metadata, plotted data, and factual observations supplied by the backend.
+const SYSTEM_PROMPT = `You are Maint-IQ's Analytics Explanation Assistant. Your purpose is to explain industrial equipment analytics graphs using the actual graph metadata, plotted data, and factual observations supplied by the backend.
 
 ## Responsibilities
 - Explain what the selected graph measures.
@@ -717,7 +717,7 @@ export async function explainGraph(body, userId) {
   try {
     const raw = await generateJson({
       system: SYSTEM_PROMPT,
-      user: `Explain this MaintIQ analytics graph using only the supplied evidence.\n${JSON.stringify(packet)}`,
+      user: `Explain this Maint-IQ analytics graph using only the supplied evidence.\n${JSON.stringify(packet)}`,
     });
     const explanation = validateExplanation(raw, graph.title);
     if (!explanation) {

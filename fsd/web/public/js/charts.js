@@ -1,7 +1,7 @@
 (() => {
   if (typeof Chart === "undefined") {
     console.error(
-      "[MaintIQ] Chart.js did not load (/js/chart.umd.min.js). Dashboard and analytics charts were skipped."
+      "[Maint-IQ] Chart.js did not load (/js/chart.umd.min.js). Dashboard and analytics charts were skipped."
     );
     return;
   }
@@ -22,11 +22,11 @@
   const analytics = window.ANALYTICS_DATA || null;
 
   if (byId("healthDonut") && !dash.healthCounts) {
-    console.warn("[MaintIQ] DASHBOARD_DATA.healthCounts missing; donut may be empty.");
+    console.warn("[Maint-IQ] DASHBOARD_DATA.healthCounts missing; donut may be empty.");
   }
   if (byId("analytics-filters") && !analytics) {
     console.error(
-      "[MaintIQ] ANALYTICS_DATA missing (/js/analytics-data.js). Analytics charts and window table were skipped."
+      "[Maint-IQ] ANALYTICS_DATA missing (/js/analytics-data.js). Analytics charts and window table were skipped."
     );
   }
 

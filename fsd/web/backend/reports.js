@@ -30,7 +30,7 @@ function mapListRow(row) {
     period: row.period_label || "—",
     datasetId: row.dataset_id || "—",
     runId: row.run_id || "—",
-    createdBy: [row.first_name, row.last_name].filter(Boolean).join(" ") || "MaintIQ",
+    createdBy: [row.first_name, row.last_name].filter(Boolean).join(" ") || "Maint-IQ",
     createdAt: row.created_at,
   };
 }

@@ -547,7 +547,7 @@ app.get("/reports/pdf", requireUser, async (req, res) => {
         format: "A4",
         printBackground: true,
         displayHeaderFooter: true,
-        headerTemplate: `<div style="font-size:9px;color:#5c6570;width:100%;padding:0 16mm;font-family:Segoe UI,sans-serif;display:flex;justify-content:space-between;"><span>MaintIQ · ${report.id.toUpperCase()}</span><span>${report.generatedAtLabel}</span></div>`,
+        headerTemplate: `<div style="font-size:9px;color:#5c6570;width:100%;padding:0 16mm;font-family:Segoe UI,sans-serif;display:flex;justify-content:space-between;"><span>Maint-IQ · ${report.id.toUpperCase()}</span><span>${report.generatedAtLabel}</span></div>`,
         footerTemplate: `<div style="font-size:9px;color:#5c6570;width:100%;padding:0 16mm;font-family:Segoe UI,sans-serif;display:flex;justify-content:space-between;"><span>${report.datasetId || report.machine.assetId}${report.runId ? ` · ${report.runId}` : ""}</span><span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span></div>`,
         margin: { top: "16mm", bottom: "16mm", left: "14mm", right: "14mm" },
       });
@@ -738,7 +738,7 @@ async function start() {
   }
 
   app.listen(PORT, () => {
-    console.log(`MaintIQ → http://localhost:${PORT}`);
+    console.log(`Maint-IQ → http://localhost:${PORT}`);
   });
 }
 

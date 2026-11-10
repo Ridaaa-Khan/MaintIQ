@@ -20,7 +20,7 @@
                 <path d="M7 14.5c1.2-3 2.2-4.6 3.2-4.6 1.4 0 1.6 4 3.1 4s1.8-3.2 3.7-3.2" stroke="#d7f3f1" stroke-width="1.6" stroke-linecap="round"/>
               </svg>
             </span>
-            MaintIQ
+            Maint-IQ
           </div>
           <div class="report-kicker">Technical condition report</div>
         </header>
@@ -80,14 +80,14 @@
         <p class="report-note">Values below are retrieved from stored records for this machine. Isolation Forest flags mean a window looks unlike the early-life baseline, not that a fault is confirmed. RUL is experimental. Empty fields are omitted rather than estimated.</p>
         <% } %>
         <footer class="report-foot">
-          <span>MaintIQ · <%= report.machine.assetId %></span>
+          <span>Maint-IQ · <%= report.machine.assetId %></span>
           <span><%= report.generatedAtLabel %></span>
         </footer>
       </section>
 
       <section class="report-page">
         <header class="report-masthead is-inner">
-          <div class="report-brand">MaintIQ</div>
+          <div class="report-brand">Maint-IQ</div>
           <div class="report-kicker"><%= report.id.toUpperCase() %> · <%= report.machine.assetId %></div>
         </header>
 
@@ -213,7 +213,7 @@
         <% } %>
         <% } %>
         <footer class="report-foot">
-          <span>MaintIQ · <%= report.id.toUpperCase() %></span>
+          <span>Maint-IQ · <%= report.id.toUpperCase() %></span>
           <span><%= report.machine.assetId %></span>
         </footer>
       </section>
@@ -221,7 +221,7 @@
       <% if (report.sections.maintenance || report.sections.alerts || report.sections.conclusion) { %>
       <section class="report-page">
         <header class="report-masthead is-inner">
-          <div class="report-brand">MaintIQ</div>
+          <div class="report-brand">Maint-IQ</div>
           <div class="report-kicker"><%= report.id.toUpperCase() %> · <%= report.generatedAtLabel %></div>
         </header>
 
@@ -315,7 +315,7 @@
         <p><%= report.narrative.conclusion %></p>
 
         <footer class="report-foot">
-          <span>MaintIQ · <%= report.id.toUpperCase() %></span>
+          <span>Maint-IQ · <%= report.id.toUpperCase() %></span>
           <span><%= report.machine.assetId %></span>
         </footer>
       </section>

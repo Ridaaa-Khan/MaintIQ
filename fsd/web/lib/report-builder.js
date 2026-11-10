@@ -97,7 +97,7 @@ export function assembleMachineReport({
   alerts = [],
   runs = [],
   activity = [],
-  generatedBy = "MaintIQ",
+  generatedBy = "Maint-IQ",
   generatedAt = new Date(),
 } = {}) {
   const meta = getImsMeta();
@@ -190,7 +190,7 @@ export function assembleMachineReport({
     overviewRows.push({ label: "Monitoring", value: machine.monitoring });
   }
   if (machine.createdAtLabel && machine.createdAtLabel !== "—") {
-    overviewRows.push({ label: "Registered in MaintIQ", value: machine.createdAtLabel });
+    overviewRows.push({ label: "Registered in Maint-IQ", value: machine.createdAtLabel });
   }
   if (present(periodLabel)) overviewRows.push({ label: "Analysis window", value: periodLabel });
   if (machine.nWindows) {
@@ -503,7 +503,7 @@ function buildFailureInterp({ machine, threshold, peakFail, flaggedFail, predict
 
 function buildConclusion({ machine, flaggedIf, predictedFail, last, threshold, openAlerts, hasVibration }) {
   if (!hasVibration && !openAlerts.length) {
-    return `${machine.name} has a stored profile in MaintIQ, but no scored vibration windows or alerts were available when this report was generated.`;
+    return `${machine.name} has a stored profile in Maint-IQ, but no scored vibration windows or alerts were available when this report was generated.`;
   }
   const follow =
     flaggedIf.length || predictedFail.length || openAlerts.length
