@@ -349,7 +349,18 @@ app.post("/machines", requireApiUser, (req, res) => {
         return res.status(403).json({ ok: false, errors: ["Session expired. Refresh and try again."] });
       }
       const result = await addMachine(req.body, req.file, req.user.id);
+
       if (!result.ok) return res.status(400).json(result);
+
+      // Log machine creation
+      await logActivity({
+        userId: req.user.id,
+        action: "MACHINE_CREATED",
+        entityType: "machine",
+        entityId: result.id,
+        summary: "A new machine was added.",
+      });
+
       return res.json({ ok: true, redirect: `/machines/${result.id}` });
     } catch (error) {
       console.error(error);
