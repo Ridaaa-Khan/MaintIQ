@@ -304,14 +304,14 @@ app.post("/tester", async (req, res) => {
   try {
     const userId = await ensureTesterAccount();
     await destroyAllSessions(userId);
-    await createSession(req, res, user.id);
+    await createSession(req, res, userId);
 
     await logActivity({
-      userId: user.id,
+      userId,
       action: "USER_LOGIN",
       entityType: "user",
-      entityId: user.id,
-      summary: "User signed in successfully.",
+      entityId: userId,
+      summary: "Tester signed in successfully.",
     });
 
     return res.redirect("/dashboard");
