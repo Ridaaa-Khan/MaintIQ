@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getPool } from "./db.js";
+import { logActivity } from "./lib/activity-looger.js";
 import {
   consumeAuthAttempt,
   createSession,
@@ -204,6 +205,15 @@ app.post("/signup", async (req, res) => {
       ]
     );
     await createSession(req, res, result.insertId);
+
+    await logActivity({
+      userId: result.insertId,
+      action: "USER_REGISTERED",
+      entityType: "user",
+      entityId: result.insertId,
+      summary: "A new user account was registered.",
+    });
+
     return res.redirect("/dashboard");
   } catch (err) {
     if (err && err.code === "ER_DUP_ENTRY") {
@@ -260,6 +270,19 @@ app.post("/signin", async (req, res) => {
         values: { email: checked.values.email },
       });
     }
+    if (!user || !match) {
+      await logActivity({
+        userId: user?.id ?? null,
+        action: "USER_LOGIN_FAILED",
+        entityType: "user",
+        status: "failed",
+        summary: "A sign-in attempt failed.",
+      });
+
+      return res.render("signin", {
+        error: "Invalid email or password",
+      });
+    }
 
     await destroyAllSessions(user.id);
     await createSession(req, res, user.id);
@@ -280,7 +303,16 @@ app.post("/tester", async (req, res) => {
   try {
     const userId = await ensureTesterAccount();
     await destroyAllSessions(userId);
-    await createSession(req, res, userId);
+    await createSession(req, res, user.id);
+
+    await logActivity({
+      userId: user.id,
+      action: "USER_LOGIN",
+      entityType: "user",
+      entityId: user.id,
+      summary: "User signed in successfully.",
+    });
+
     return res.redirect("/dashboard");
   } catch (err) {
     console.error(err);
@@ -540,7 +572,7 @@ app.get("/reports/pdf", requireUser, async (req, res) => {
     try {
       const page = await browser.newPage();
       await page.setContent(htmlWithBase, { waitUntil: "load", timeout: 45000 });
-      await page.waitForFunction("window.REPORT_CHARTS_READY === true", { timeout: 20000 }).catch(() => {});
+      await page.waitForFunction("window.REPORT_CHARTS_READY === true", { timeout: 20000 }).catch(() => { });
       await page.evaluate(() => (document.fonts ? document.fonts.ready : null));
       await new Promise((resolve) => setTimeout(resolve, 300));
       const pdf = await page.pdf({
@@ -719,7 +751,18 @@ app.post("/settings/password", requireUser, async (req, res) => {
 });
 
 app.post("/signout", async (req, res) => {
+  const userId = req.session?.userId ?? null;
+
   await destroySession(req, res);
+
+  await logActivity({
+    userId,
+    action: "USER_LOGOUT",
+    entityType: "user",
+    entityId: userId,
+    summary: "User signed out.",
+  });
+
   res.redirect("/signin");
 });
 
