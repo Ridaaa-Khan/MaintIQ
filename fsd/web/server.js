@@ -34,6 +34,7 @@ import { explainGraph } from "./backend/explain.js";
 import { getDashboardPage } from "./backend/dashboard.js";
 import {
   addMachine,
+  deleteMachine,
   ensureUserWorkspace,
   getAnalyticsPage,
   getMachineRecord,
@@ -372,6 +373,17 @@ app.post("/machines", requireApiUser, (req, res) => {
 app.post("/machines/:id/monitoring", requireApiUser, async (req, res) => {
   const result = await setMachineMonitoring(req.params.id, String(req.body?.status || ""), req.user.id);
   return res.status(result.ok ? 200 : 400).json(result);
+});
+
+app.post("/machines/:id/delete", requireApiUser, async (req, res) => {
+  try {
+    const result = await deleteMachine(req.params.id, req.user.id);
+    if (!result.ok) return res.status(404).json(result);
+    return res.json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, error: "Could not delete the machine." });
+  }
 });
 
 app.post("/machines/:id/notes", requireUser, async (req, res) => {

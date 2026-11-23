@@ -384,6 +384,49 @@ export async function setMachineMonitoring(publicId, status, userId) {
   };
 }
 
+export async function deleteMachine(publicId, userId) {
+  const ownerId = Number(userId);
+  if (!ownerId) return { ok: false, error: "Machine not found." };
+  const pool = await getPool();
+  const [rows] = await pool.query(
+    "SELECT id, public_id, name, asset_id FROM machines WHERE public_id = ? AND created_by = ? LIMIT 1",
+    [String(publicId || ""), ownerId]
+  );
+  if (!rows.length) return { ok: false, error: "Machine not found." };
+  const machine = rows[0];
+
+  const [files] = await pool.query("SELECT stored_path FROM dataset_files WHERE machine_id = ?", [
+    machine.id,
+  ]);
+
+  const [result] = await pool.query("DELETE FROM machines WHERE id = ? AND created_by = ?", [
+    machine.id,
+    ownerId,
+  ]);
+  if (!result.affectedRows) return { ok: false, error: "Machine not found." };
+
+  for (const file of files) {
+    try {
+      const stored = String(file.stored_path || "");
+      if (!stored) continue;
+      const dir = path.dirname(stored);
+      if (dir.startsWith(STORAGE_DIR)) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    } catch {
+      /* best-effort cleanup */
+    }
+  }
+  try {
+    const uploadDir = path.join(STORAGE_DIR, machine.public_id);
+    if (fs.existsSync(uploadDir)) fs.rmSync(uploadDir, { recursive: true, force: true });
+  } catch {
+    /* best-effort cleanup */
+  }
+
+  return { ok: true, id: machine.public_id, name: machine.name, assetId: machine.asset_id };
+}
+
 function pythonCommand() {
   if (fs.existsSync(VENV_PYTHON)) return VENV_PYTHON;
   return "python";

@@ -464,6 +464,33 @@
     });
   });
 
+  document.querySelectorAll("[data-delete-machine]").forEach((btn) => {
+    btn.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenus();
+      const source = btn.closest("tr") || btn.closest(".machine-card");
+      const id = source?.dataset.id;
+      const name = source?.dataset.name || "this machine";
+      if (!id) return;
+      if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+      try {
+        const response = await fetch(`/machines/${encodeURIComponent(id)}/delete`, {
+          method: "POST",
+          headers: csrfHeaders({ Accept: "application/json" }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.ok) {
+          window.alert(payload.error || "Could not delete the machine.");
+          return;
+        }
+        window.location.reload();
+      } catch {
+        window.alert("Could not delete the machine.");
+      }
+    });
+  });
+
   document.querySelectorAll("[data-open]").forEach((el) => {
     el.addEventListener("click", (event) => {
       event.preventDefault();
