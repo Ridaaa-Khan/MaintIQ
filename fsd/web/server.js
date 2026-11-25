@@ -371,14 +371,39 @@ app.post("/machines", requireApiUser, (req, res) => {
 });
 
 app.post("/machines/:id/monitoring", requireApiUser, async (req, res) => {
-  const result = await setMachineMonitoring(req.params.id, String(req.body?.status || ""), req.user.id);
+  const result = await setMachineMonitoring(
+    req.params.id,
+    String(req.body?.status || ""),
+    req.user.id
+  );
+
+  if (result.ok) {
+    await logActivity({
+      userId: req.user.id,
+      action: "MACHINE_MONITORING_UPDATED",
+      entityType: "machine",
+      entityId: req.params.id,
+      summary: `Machine monitoring status changed to ${String(req.body?.status || "")}.`,
+    });
+  }
+
   return res.status(result.ok ? 200 : 400).json(result);
 });
 
 app.post("/machines/:id/delete", requireApiUser, async (req, res) => {
   try {
     const result = await deleteMachine(req.params.id, req.user.id);
+
     if (!result.ok) return res.status(404).json(result);
+
+    await logActivity({
+      userId: req.user.id,
+      action: "MACHINE_DELETED",
+      entityType: "machine",
+      entityId: req.params.id,
+      summary: "A machine was deleted.",
+    });
+
     return res.json(result);
   } catch (err) {
     console.error(err);
@@ -388,15 +413,27 @@ app.post("/machines/:id/delete", requireApiUser, async (req, res) => {
 
 app.post("/machines/:id/notes", requireUser, async (req, res) => {
   const result = await updateMachineNotes(req.params.id, req.body.notes, req.user.id);
+
   if (!result.ok) return res.redirect("/machines");
+
+  await logActivity({
+    userId: req.user.id,
+    action: "MACHINE_NOTES_UPDATED",
+    entityType: "machine",
+    entityId: req.params.id,
+    summary: "Machine notes were updated.",
+  });
+
   return res.redirect(`/machines/${req.params.id}`);
 });
 
 app.post("/machines/:id", requireUser, async (req, res) => {
   const result = await updateMachine(req.params.id, req.body, req.user.id);
   const back = req.body.returnTo === "list" ? "/machines" : `/machines/${req.params.id}`;
+
   if (!result.ok) {
     const machine = await getMachineRecord(req.params.id, req.user.id);
+
     if (!machine || req.body.returnTo === "list") {
       const machines = await listMachineRecords(req.user.id);
       return res.status(400).render("machines", {
@@ -406,12 +443,22 @@ app.post("/machines/:id", requireUser, async (req, res) => {
         formErrors: result.errors,
       });
     }
+
     return res.status(400).render("machine-detail", {
       user: req.user,
       machine,
       editErrors: result.errors,
     });
   }
+
+  await logActivity({
+    userId: req.user.id,
+    action: "MACHINE_UPDATED",
+    entityType: "machine",
+    entityId: req.params.id,
+    summary: "Machine details were updated.",
+  });
+
   return res.redirect(back);
 });
 
@@ -445,7 +492,21 @@ app.get("/alerts", requireUser, async (req, res) => {
 });
 
 app.post("/alerts/status", requireApiUser, async (req, res) => {
-  const result = await updateAlertStatus(String(req.body.alertKey || ""), String(req.body.status || ""), req.user.id);
+  const alertKey = String(req.body.alertKey || "");
+  const newStatus = String(req.body.status || "");
+
+  const result = await updateAlertStatus(alertKey, newStatus, req.user.id);
+
+  if (result.ok) {
+    await logActivity({
+      userId: req.user.id,
+      action: "ALERT_STATUS_UPDATED",
+      entityType: "alert",
+      entityId: alertKey,
+      summary: `Alert status changed to ${newStatus}.`,
+    });
+  }
+
   return res.status(result.ok ? 200 : 400).json(result);
 });
 
@@ -457,6 +518,14 @@ app.get("/analytics", requireUser, async (req, res) => {
 app.post("/api/analytics/explain", requireApiUser, async (req, res) => {
   try {
     const result = await explainGraph(req.body || {}, req.user.id);
+
+    await logActivity({
+      userId: req.user.id,
+      action: "ANALYTICS_GRAPH_EXPLAINED",
+      entityType: "analytics",
+      summary: "User requested an AI explanation of an analytics graph.",
+    });
+
     return res.json(result);
   } catch (err) {
     const status = Number(err.status) || 500;
@@ -501,18 +570,27 @@ app.get("/reports", requireUser, async (req, res) => {
 });
 
 app.post("/reports/generate", requireUser, async (req, res) => {
-  const generatedBy = [req.user.first_name, req.user.last_name].filter(Boolean).join(" ") || req.user.email;
+  const generatedBy =
+    [req.user.first_name, req.user.last_name].filter(Boolean).join(" ") ||
+    req.user.email;
+
   const machineId = String(req.body?.machineId || "").trim();
   const title = String(req.body?.title || "").trim();
+
   const result = await createGeneratedReport({
     machinePublicId: machineId,
     title,
     generatedBy,
     userId: req.user.id,
   });
+
   if (!result.ok) {
     try {
-      const [reports, machines] = await Promise.all([listReports(req.user.id), listReportMachines(req.user.id)]);
+      const [reports, machines] = await Promise.all([
+        listReports(req.user.id),
+        listReportMachines(req.user.id),
+      ]);
+
       return res.status(400).render("reports", {
         user: req.user,
         reports,
@@ -535,11 +613,31 @@ app.post("/reports/generate", requireUser, async (req, res) => {
       });
     }
   }
+
+  await logActivity({
+    userId: req.user.id,
+    action: "REPORT_GENERATED",
+    entityType: "report",
+    entityId: result.id,
+    summary: `Report "${title}" was generated.`,
+  });
+
   return res.redirect(`/reports/preview?id=${encodeURIComponent(result.id)}`);
 });
 
 app.post("/reports/:id/delete", requireUser, async (req, res) => {
   const ok = await deleteGeneratedReport(req.params.id, req.user.id);
+
+  if (ok) {
+    await logActivity({
+      userId: req.user.id,
+      action: "REPORT_DELETED",
+      entityType: "report",
+      entityId: req.params.id,
+      summary: "A generated report was deleted.",
+    });
+  }
+
   return res.redirect(ok ? "/reports?deleted=1" : "/reports");
 });
 
@@ -681,6 +779,15 @@ app.post("/settings/profile", requireUser, async (req, res) => {
         req.user.id,
       ]
     );
+
+    await logActivity({
+      userId: req.user.id,
+      action: "PROFILE_UPDATED",
+      entityType: "user",
+      entityId: req.user.id,
+      summary: "User profile details were updated.",
+    });
+
     return res.redirect("/settings?profileUpdated=1");
   } catch (err) {
     if (err && err.code === "ER_DUP_ENTRY") {
@@ -758,6 +865,15 @@ app.post("/settings/password", requireUser, async (req, res) => {
     ]);
     await destroyAllSessions(req.user.id);
     await createSession(req, res, req.user.id);
+
+    await logActivity({
+      userId: req.user.id,
+      action: "PASSWORD_CHANGED",
+      entityType: "user",
+      entityId: req.user.id,
+      summary: "User changed their password successfully.",
+    });
+
     return res.redirect("/settings?section=password&passwordUpdated=1");
   } catch (err) {
     console.error(err);
