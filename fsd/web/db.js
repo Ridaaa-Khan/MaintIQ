@@ -221,6 +221,22 @@ export async function getPool() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    await next.query(`
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NULL,
+        action VARCHAR(80) NOT NULL,
+        entity_type VARCHAR(80) NOT NULL,
+        entity_id VARCHAR(80) NULL,
+        status VARCHAR(40) NOT NULL DEFAULT 'success',
+        summary VARCHAR(500) NOT NULL DEFAULT '',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_activity_logs_user (user_id),
+        KEY idx_activity_logs_action (action),
+        KEY idx_activity_logs_created (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     await migrateOwnershipIndexes(next);
     await addColumnIfMissing(
       next,

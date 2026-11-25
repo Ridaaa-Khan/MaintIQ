@@ -1011,6 +1011,31 @@ table.data th {
   font-family: var(--display);
 }
 
+.modal-confirm {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.modal-copy {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.modal-confirm .btn-danger {
+  background: #7f1d1d;
+  border-color: #991b1b;
+  color: #fff;
+}
+
+.modal-confirm .btn-danger:hover {
+  background: #991b1b;
+}
+
+.modal-confirm .btn-danger:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
 .form-grid {
   display: grid;
   gap: 12px;

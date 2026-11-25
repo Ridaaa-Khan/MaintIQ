@@ -464,8 +464,35 @@
     });
   });
 
+  const deleteModal = document.querySelector("#delete-machine");
+  const deleteCopy = document.querySelector("#delete-machine-copy");
+  const deleteError = document.querySelector("#delete-machine-error");
+  const deleteConfirmBtn = document.querySelector("#delete-machine-confirm");
+  let pendingDelete = null;
+
+  const showDeleteError = (message) => {
+    if (!deleteError) return;
+    deleteError.textContent = message || "Could not delete the machine.";
+    deleteError.hidden = false;
+  };
+
+  const openDeleteModal = (id, name) => {
+    pendingDelete = { id, name };
+    if (deleteCopy) {
+      deleteCopy.textContent = `Delete “${name}”? This cannot be undone.`;
+    }
+    if (deleteError) {
+      deleteError.hidden = true;
+      deleteError.textContent = "";
+    }
+    if (deleteConfirmBtn) deleteConfirmBtn.disabled = false;
+    open(".overlay");
+    open("#delete-machine");
+    deleteConfirmBtn?.focus();
+  };
+
   document.querySelectorAll("[data-delete-machine]").forEach((btn) => {
-    btn.addEventListener("click", async (event) => {
+    btn.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
       closeMenus();
@@ -473,22 +500,34 @@
       const id = source?.dataset.id;
       const name = source?.dataset.name || "this machine";
       if (!id) return;
-      if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
-      try {
-        const response = await fetch(`/machines/${encodeURIComponent(id)}/delete`, {
-          method: "POST",
-          headers: csrfHeaders({ Accept: "application/json" }),
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload.ok) {
-          window.alert(payload.error || "Could not delete the machine.");
-          return;
-        }
-        window.location.reload();
-      } catch {
-        window.alert("Could not delete the machine.");
-      }
+      openDeleteModal(id, name);
     });
+  });
+
+  deleteConfirmBtn?.addEventListener("click", async () => {
+    if (!pendingDelete?.id || deleteConfirmBtn.disabled) return;
+    deleteConfirmBtn.disabled = true;
+    if (deleteError) {
+      deleteError.hidden = true;
+      deleteError.textContent = "";
+    }
+    try {
+      const response = await fetch(`/machines/${encodeURIComponent(pendingDelete.id)}/delete`, {
+        method: "POST",
+        headers: csrfHeaders({ Accept: "application/json" }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        showDeleteError(payload.error || "Could not delete the machine.");
+        deleteConfirmBtn.disabled = false;
+        return;
+      }
+      pendingDelete = null;
+      window.location.reload();
+    } catch {
+      showDeleteError("Could not delete the machine.");
+      deleteConfirmBtn.disabled = false;
+    }
   });
 
   document.querySelectorAll("[data-open]").forEach((el) => {

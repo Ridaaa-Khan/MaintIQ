@@ -194,4 +194,14 @@
   </form>
 </div>
 
+<div class="modal modal-confirm" id="delete-machine" role="dialog" aria-modal="true" aria-labelledby="delete-machine-title">
+  <h3 id="delete-machine-title">Delete machine</h3>
+  <p class="modal-copy" id="delete-machine-copy">This cannot be undone.</p>
+  <p class="form-error" id="delete-machine-error" hidden></p>
+  <div class="btn-row">
+    <button class="btn btn-danger" type="button" id="delete-machine-confirm">Delete</button>
+    <button class="btn" type="button" data-close>Cancel</button>
+  </div>
+</div>
+
 <%- include('partials/app-close') %>
